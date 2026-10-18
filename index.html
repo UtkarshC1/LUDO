@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Classic Ludo Royale - 4 Player Online & Local Multiplayer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PeerJS for 100% Free Peer-to-Peer WebRTC Multiplayer (Vercel & GitHub Pages ready) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap');
+
+    :root {
+      --red-color: #e53935;
+      --green-color: #43a047;
+      --yellow-color: #fbc02d;
+      --blue-color: #1e88e5;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .font-game {
+      font-family: 'Fredoka', cursive;
+    }
+
+    /* 15x15 Exact Board Ratio */
+    .ludo-grid {
+      display: grid;
+      grid-template-columns: repeat(15, minmax(0, 1fr));
+      grid-template-rows: repeat(15, minmax(0, 1fr));
+      aspect-ratio: 1 / 1;
+    }
+
+    /* Authentic Central Winning Triangles:
+       Top = Yellow, Right = Blue, Bottom = Red, Left = Green */
+    .tri-yellow {
+      clip-path: polygon(0% 0%, 100% 0%, 50% 50%);
+      background-color: var(--yellow-color);
+    }
+    .tri-blue {
+      clip-path: polygon(100% 0%, 100% 100%, 50% 50%);
+      background-color: var(--blue-color);
+    }
+    .tri-red {
+      clip-path: polygon(0% 100%, 100% 100%, 50% 50%);
+      background-color: var(--red-color);
+    }
+    .tri-green {
+      clip-path: polygon(0% 0%, 50% 50%, 0% 100%);
+      background-color: var(--green-color);
+    }
+
+    /* Movable Token Pulse Animation */
+    @keyframes tokenPulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.9));
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.24);
+        filter: drop-shadow(0 0 12px rgba(250, 204, 21, 1));
+      }
+    }
+
+    .token-movable {
+      animation: tokenPulse 0.85s infinite ease-in-out;
+      cursor: pointer;
+      z-index: 45 !important;
+    }
+
+    /* 3D Dice Real Rolling Wobble */
+    @keyframes diceRollAnim {
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.9); }
+      25% { transform: rotateX(180deg) rotateY(90deg) rotateZ(45deg) scale(1.08); }
+      50% { transform: rotateX(360deg) rotateY(270deg) rotateZ(-30deg) scale(0.95); }
+      75% { transform: rotateX(540deg) rotateY(180deg) rotateZ(90deg) scale(1.05); }
+      100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(0deg) scale(1); }
+    }
+
+    .dice-rolling {
+      animation: diceRollAnim 0.42s ease-in-out infinite;
+    }
+
+    /* Realistic 3D Pip Dot Dice styling */
+    .dice-pip {
+      width: 11px;
+      height: 11px;
+      background: #1e293b;
+      border-radius: 9999px;
+      box-shadow: inset 1px 1px 2px rgba(0,0,0,0.65);
+    }
+    .dice-pip-red {
+      background: #dc2626 !important;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-rose-500 selection:text-white">
+
+  <!-- ================= CUSTOM TOAST ALERT ================= -->
+  <div id="toastBanner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2.5 rounded-2xl bg-slate-900/95 border border-amber-500/40 text-amber-300 text-xs font-bold shadow-2xl backdrop-blur transition-all">
+    Notification
+  </div>
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="px-3 sm:px-5 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between sticky top-0 z-40 backdrop-blur">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 via-amber-500 to-emerald-500 flex items-center justify-center font-game font-bold text-lg shadow-lg shadow-rose-950/40 text-white">
+        🎲
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-base font-black tracking-tight flex items-center gap-1.5 leading-none">
+          Classic Ludo <span class="text-[10px] uppercase font-bold tracking-widest bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded">ROYALE</span>
+        </h1>
+        <div class="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block" id="statusDot"></span>
+          <span id="statusText">Ready to Play</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Audio Toggle -->
+      <button id="soundBtn" onclick="toggleAudio()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition active:scale-95 text-sm" title="Toggle Sound">
+        <span id="soundIcon">🔊</span>
+      </button>
+
+      <!-- Rules Guide -->
+      <button onclick="openModal('rulesModal')" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition flex items-center gap-1">
+        <span>📜</span> <span class="hidden sm:inline">Rules</span>
+      </button>
+
+      <!-- Deploy Guide -->
+      <button onclick="openModal('deployModal')" class="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition items-center gap-1">
+        <span>🚀</span> Deploy
+      </button>
+
+      <!-- Leave Button -->
+      <button id="leaveRoomBtn" onclick="exitToHome()" class="hidden px-2.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-semibold transition">
+        Exit Match
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= VIEW 1: HOME SCREEN ================= -->
+  <section id="homeView" class="flex-1 flex flex-col items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur relative overflow-hidden">
+      
+      <div class="absolute -top-16 -right-16 w-48 h-48 bg-rose-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center mb-5 relative">
+        <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-rose-600 via-amber-500 to-emerald-500 shadow-xl shadow-rose-600/20 mb-2.5 text-3xl">
+          👑
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-white font-game">Classic Ludo Royale</h2>
+        <p class="text-slate-400 text-xs mt-1">Authentic 15×15 Board • Star Safe Zones • Online & Local Modes</p>
+      </div>
+
+      <div class="space-y-3.5 mb-5 relative">
+        <div>
+          <label class="block text-xs uppercase tracking-wider font-bold text-slate-400 mb-1">Your Nickname</label>
+          <input id="playerNameInput" type="text" maxlength="12" placeholder="e.g. MasterRoller" value="Player 1"
+            class="w-full px-4 py-2.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 transition text-sm">
+        </div>
+
+        <!-- Local / Bot Quick Setup -->
+        <div class="p-3.5 bg-slate-800/50 rounded-2xl border border-slate-700/70 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🎮</span>
+              <div>
+                <div class="text-xs font-bold text-white">Instant Local & AI Match</div>
+                <div class="text-[10px] text-slate-400">Configure seats as Human, Smart Bot, or Off</div>
+              </div>
+            </div>
+            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">OFFLINE</span>
+          </div>
+
+          <!-- Seat Selectors for Local Mode -->
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <div class="flex items-center justify-between bg-slate-900/90 border border-red-500/30 rounded-xl px-2.5 py-1.5">
+              <span class="font-bold text-red-400 flex items-center gap-1">🔴 Red</span>
+              <select id="seatRed" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                <option value="human" selected>Human</option>
+                <option value="bot">🤖 Bot</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-slate-900/90 border border-green-500/30 rounded-xl px-2.5 py-1.5">
+              <span class="font-bold text-green-400 flex items-center gap-1">🟢 Green</span>
+              <select id="seatGreen" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                <option value="human">Human</option>
+                <option value="bot" selected>🤖 Bot</option>
+                <option value="none">Off</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-slate-900/90 border border-yellow-500/30 rounded-xl px-2.5 py-1.5">
+              <span class="font-bold text-yellow-300 flex items-center gap-1">🟡 Yellow</span>
+              <select id="seatYellow" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                <option value="human">Human</option>
+                <option value="bot" selected>🤖 Bot</option>
+                <option value="none">Off</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between bg-slate-900/90 border border-blue-500/30 rounded-xl px-2.5 py-1.5">
+              <span class="font-bold text-blue-400 flex items-center gap-1">🔵 Blue</span>
+              <select id="seatBlue" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                <option value="human">Human</option>
+                <option value="bot" selected>🤖 Bot</option>
+                <option value="none">Off</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="startLocalMatch('custom')" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+              <span>▶️</span>
+              <span>Start Match</span>
+            </button>
+            <button onclick="startLocalMatch('pass4')" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+              <span>👥</span>
+              <span>4P Pass & Play</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center my-2">
+          <div class="flex-1 border-t border-slate-800"></div>
+          <span class="px-3 text-[10px] font-mono tracking-widest text-slate-500 uppercase">ONLINE P2P MULTIPLAYER</span>
+          <div class="flex-1 border-t border-slate-800"></div>
+        </div>
+
+        <!-- Action 1: Create Online Room -->
+        <button onclick="createRoom()" class="w-full py-3 px-4 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transform active:scale-95 transition text-sm">
+          <span>✨</span>
+          <span>Create Online Room (2–4 Players)</span>
+        </button>
+
+        <!-- Action 2: Join Online Room -->
+        <div class="flex gap-2">
+          <input id="joinCodeInput" type="text" maxlength="8" placeholder="ROOM CODE"
+            class="w-1/2 px-3 py-2.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-center text-sm font-mono font-bold tracking-widest uppercase text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition placeholder:text-slate-500">
+          <button onclick="joinRoom()" class="w-1/2 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs">
+            <span>🚀</span>
+            <span>Join Room</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-xs text-slate-500 pt-3 border-t border-slate-800/80">
+        <button onclick="openModal('rulesModal')" class="hover:text-amber-400 transition underline underline-offset-4">Classic Rules Guide</button>
+        <button onclick="openModal('deployModal')" class="hover:text-amber-400 transition underline underline-offset-4">Free Vercel/GitHub Hosting</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 2: LOBBY ================= -->
+  <section id="lobbyView" class="hidden flex-1 flex flex-col items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative">
+      <div class="w-14 h-14 bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mx-auto mb-3 animate-bounce text-2xl">
+        ⌛
+      </div>
+      <h2 class="text-2xl font-black text-white font-game mb-1">Online Room Lobby</h2>
+      <p class="text-slate-400 text-xs mb-4">Share the room code or link with friends. Host can start as soon as 2+ players are ready!</p>
+
+      <!-- Code Box -->
+      <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-3">
+        <div class="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-0.5">Room Code</div>
+        <div id="lobbyRoomCode" class="text-3xl sm:text-4xl font-black font-mono tracking-widest text-amber-400">------</div>
+      </div>
+
+      <!-- Invite Link -->
+      <div class="flex gap-2 mb-5">
+        <input id="lobbyShareUrl" type="text" readonly
+          class="flex-1 bg-slate-800/90 border border-slate-700 text-xs px-3.5 py-2.5 rounded-xl font-mono text-slate-300 truncate focus:outline-none">
+        <button onclick="copyInviteLink()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0">
+          <span id="copyBtnIcon">📋</span>
+          <span id="copyBtnText">Copy</span>
+        </button>
+      </div>
+
+      <!-- Player Slots -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5 text-left">
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-bold text-white text-xs shadow">R</div>
+            <div><div id="lobbyRedName" class="text-xs font-bold text-white">Player 1</div><div class="text-[10px] text-red-400 font-semibold">Red • Host</div></div>
+          </div><span id="lobbyRedStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">Ready</span>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center font-bold text-white text-xs shadow">G</div>
+            <div><div id="lobbyGreenName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-green-400 font-semibold">Green</div></div>
+          </div><span id="lobbyGreenStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow">Y</div>
+            <div><div id="lobbyYellowName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-yellow-400 font-semibold">Yellow</div></div>
+          </div><span id="lobbyYellowStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-xs shadow">B</div>
+            <div><div id="lobbyBlueName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-blue-400 font-semibold">Blue</div></div>
+          </div><span id="lobbyBlueStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mb-3">
+        <button id="addBotLobbyBtn" onclick="toggleBotsInOnlineLobby()" class="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold rounded-xl text-xs transition">
+          🤖 Fill Open Seats w/ Bots
+        </button>
+        <button id="startOnlineBtn" onclick="startOnlineGame()" disabled class="w-1/2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition disabled:cursor-not-allowed opacity-50">
+          🎮 Start Match
+        </button>
+      </div>
+
+      <button onclick="exitToHome()" class="text-xs text-slate-500 hover:text-slate-300 transition">
+        ← Cancel & Return Home
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 3: LIVE LUDO GAME ================= -->
+  <main id="gameView" class="hidden flex-1 flex flex-col items-center justify-center p-2 sm:p-4 max-w-6xl mx-auto w-full">
+    
+    <!-- Top Player Status Cards -->
+    <div class="w-full grid grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-900/80 border border-slate-800 p-2 sm:p-2.5 rounded-2xl mb-2">
+      <div id="cardGreen" class="flex items-center justify-between p-2 rounded-xl border border-green-500/20 bg-slate-800/40 transition-all">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="w-8 h-8 rounded-xl bg-green-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">G</div>
+          <div class="overflow-hidden">
+            <div id="gameGreenName" class="text-xs font-bold truncate text-green-300">Green</div>
+            <div id="gameGreenScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+          </div>
+        </div>
+        <span id="badgeGreenTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-green-500 text-slate-950">TURN</span>
+      </div>
+
+      <div id="cardYellow" class="flex items-center justify-between p-2 rounded-xl border border-yellow-500/20 bg-slate-800/40 transition-all">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center font-bold text-slate-950 shadow text-sm shrink-0">Y</div>
+          <div class="overflow-hidden">
+            <div id="gameYellowName" class="text-xs font-bold truncate text-yellow-300">Yellow</div>
+            <div id="gameYellowScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+          </div>
+        </div>
+        <span id="badgeYellowTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-yellow-400 text-slate-950">TURN</span>
+      </div>
+
+      <div id="cardRed" class="flex items-center justify-between p-2 rounded-xl border border-red-500/20 bg-slate-800/40 transition-all">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">R</div>
+          <div class="overflow-hidden">
+            <div id="gameRedName" class="text-xs font-bold truncate text-red-300">Red</div>
+            <div id="gameRedScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+          </div>
+        </div>
+        <span id="badgeRedTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-500 text-white">TURN</span>
+      </div>
+
+      <div id="cardBlue" class="flex items-center justify-between p-2 rounded-xl border border-blue-500/20 bg-slate-800/40 transition-all">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">B</div>
+          <div class="overflow-hidden">
+            <div id="gameBlueName" class="text-xs font-bold truncate text-blue-300">Blue</div>
+            <div id="gameBlueScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+          </div>
+        </div>
+        <span id="badgeBlueTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-500 text-white">TURN</span>
+      </div>
+    </div>
+
+    <!-- Turn announcement -->
+    <div class="w-full text-center mb-2">
+      <div id="turnBadge" class="inline-block text-[11px] sm:text-xs uppercase font-extrabold px-3.5 py-1 rounded-full bg-red-600 text-white shadow-md whitespace-nowrap transition-colors">Red's Turn</div>
+      <div id="turnSubText" class="text-[11px] text-slate-400 font-medium mt-0.5">Roll the dice to begin</div>
+    </div>
+
+    <!-- Central Arena: Authentic 15x15 Board + Controls -->
+    <div class="w-full flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-6">
+      
+      <!-- LUDO 15x15 BOARD CONTAINER -->
+      <div class="relative w-full max-w-[430px] sm:max-w-[490px] aspect-square bg-slate-900 rounded-2xl shadow-2xl p-2 sm:p-2.5 border-4 border-slate-800 select-none">
+        
+        <!-- Reaction Emoji Floating Popups -->
+        <div id="emojiFloatContainer" class="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"></div>
+
+        <!-- Inner Board Wrapper so Grid and Token Overlay share the exact same 100% coordinate box -->
+        <div class="relative w-full h-full rounded-xl overflow-hidden shadow-inner border-2 border-slate-700 bg-white">
+          <!-- 15x15 Grid Layout -->
+          <div id="boardGrid" class="ludo-grid w-full h-full relative z-10">
+            <!-- Explicitly positioned 15x15 cells, 6x6 yards, and 3x3 center triangles -->
+          </div>
+
+          <!-- Active Pawns Interactive Overlay Layer -->
+          <div id="tokensLayer" class="absolute inset-0 pointer-events-none z-30">
+            <!-- Positioned tokens with exact percentage coordinates -->
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLS & 3D DICE TRAY -->
+      <div class="w-full md:w-56 flex md:flex-col items-center justify-between md:justify-center gap-3 bg-slate-900/70 border border-slate-800/90 p-3 sm:p-4 rounded-3xl">
+        
+        <!-- Dice Rolling Widget -->
+        <div class="flex flex-col items-center flex-1 md:flex-none">
+          <button id="diceBtn" onclick="onDiceClick()" class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-white via-slate-100 to-slate-200 border-4 border-slate-300 rounded-3xl shadow-xl flex items-center justify-center cursor-pointer transform active:scale-95 transition-all select-none">
+            <div id="diceFaceDisplay" class="w-full h-full p-3 flex items-center justify-center">
+              <!-- Dot pips rendered via JS -->
+            </div>
+          </button>
+          
+          <div id="diceValueBadge" class="mt-2 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
+            Ready
+          </div>
+
+          <div id="diceHelperText" class="text-[11px] font-bold text-amber-400 mt-1.5 text-center">
+            Click Dice or Press Space
+          </div>
+
+          <!-- Consecutive Sixes Indicator -->
+          <div id="consecutiveSixesBadge" class="hidden text-[10px] font-mono text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
+            Six Streak: <span id="sixCountVal">1</span>/3
+          </div>
+        </div>
+
+        <!-- Quick Chat Emojis -->
+        <div class="bg-slate-950/80 border border-slate-800 p-2 rounded-2xl flex md:grid md:grid-cols-3 gap-1.5 shadow-inner">
+          <button onclick="sendEmoji('😂')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">😂</button>
+          <button onclick="sendEmoji('🎯')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🎯</button>
+          <button onclick="sendEmoji('🔥')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🔥</button>
+          <button onclick="sendEmoji('😭')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">😭</button>
+          <button onclick="sendEmoji('🎲')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🎲</button>
+          <button onclick="sendEmoji('👑')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">👑</button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Real-time Status / Rule helper -->
+    <div id="gameNotification" class="mt-2.5 text-xs font-semibold text-slate-300 text-center min-h-[1.25rem] px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800">
+      Roll a 6 to bring a pawn out onto the starting square!
+    </div>
+  </main>
+
+  <!-- ================= MODAL: VICTORY CELEBRATION ================= -->
+  <div id="victoryModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-center shadow-2xl relative">
+      <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-4xl mx-auto mb-4 shadow-xl shadow-amber-500/20">
+        🏆
+      </div>
+      <h2 id="winnerTitle" class="text-3xl font-black text-white font-game mb-1">VICTORY!</h2>
+      <p id="winnerDesc" class="text-slate-300 text-xs sm:text-sm mb-6">Player 1 brought all 4 pawns home!</p>
+      <div class="space-y-2">
+        <button onclick="restartMatch()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-95">
+          Play Rematch
+        </button>
+        <button onclick="exitToHome()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+          Exit to Home
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CLASSIC RULES GUIDE ================= -->
+  <div id="rulesModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2"><span>📜</span> Classic Ludo Rules</h3>
+        <button onclick="closeModal('rulesModal')" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs text-slate-300 leading-relaxed max-h-[65vh] overflow-y-auto pr-1">
+        <p>• <strong>Yard Exit:</strong> Roll a <strong>6</strong> to move a pawn out of its corner yard onto your colored starting square.</p>
+        <p>• <strong>3 Consecutive Sixes:</strong> Rolling three 6s in a row forfeits the third roll and passes the turn to the next player.</p>
+        <p>• <strong>Bonus Rolls:</strong> Earn an extra roll whenever you roll a <strong>6</strong>, capture an opponent's pawn, or bring a pawn into the center Home triangle.</p>
+        <p>• <strong>Safe Squares (★):</strong> All 4 colored starting squares and the 4 starred track squares (8 total) are safe zones—no pawn can be captured on a ★ square.</p>
+        <p>• <strong>Captures:</strong> Landing on an opponent's pawn on a non-safe square sends that opponent's pawn back to its yard.</p>
+        <p>• <strong>Exact Home Entry:</strong> After completing 51 track steps, pawns enter their colored Home Runway and require an exact roll to reach step 56 (Home).</p>
+        <p>• <strong>Clockwise Order:</strong> Red (Bottom-Left) → Green (Top-Left) → Yellow (Top-Right) → Blue (Bottom-Right).</p>
+      </div>
+      <button onclick="closeModal('rulesModal')" class="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-400 font-bold rounded-xl text-xs text-slate-950 transition">
+        Got It!
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: DEPLOYMENT GUIDE ================= -->
+  <div id="deployModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative text-left">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2"><span>🚀</span> Deploy Free to GitHub & Vercel</h3>
+        <button onclick="closeModal('deployModal')" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs text-slate-300 leading-relaxed">
+        <p>This application is 100% self-contained in a <strong>single static HTML file</strong> with zero build configuration.</p>
+        <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+          <strong class="text-amber-400 block mb-1">Deploy on Vercel:</strong>
+          <span>Push to GitHub, import repository on vercel.com, and deploy instantly!</span>
+        </div>
+        <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+          <strong class="text-emerald-400 block mb-1">Deploy on GitHub Pages:</strong>
+          <span>Go to Repository Settings → Pages → Deploy from branch <code>main</code> / <code>root</code>.</span>
+        </div>
+      </div>
+      <button onclick="closeModal('deployModal')" class="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-700 font-bold rounded-xl text-xs text-white transition">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= WEB AUDIO SYNTHESIZER ================= -->
+  <script>
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playDiceShake() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 4; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(180 + Math.random() * 220, now + i * 0.04);
+          gain.gain.setValueAtTime(0.11, now + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.035);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.04);
+          osc.stop(now + i * 0.04 + 0.04);
+        }
+      }
+
+      playHop() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(640, this.ctx.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      }
+
+      playCapture() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(680, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.28);
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.29);
+      }
+
+      playBonus() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
+        osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.26);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.27);
+      }
+
+      playVictory() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.12);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.12 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.12);
+          osc.stop(this.ctx.currentTime + idx * 0.12 + 0.36);
+        });
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    function toggleAudio() {
+      sound.muted = !sound.muted;
+      document.getElementById('soundIcon').innerText = sound.muted ? '🔇' : '🔊';
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      if (!banner) return;
+      banner.innerText = msg;
+      banner.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => banner.classList.add('hidden'), 3200);
+    }
+  </script>
+
+  <!-- ================= LUDO GAME ENGINE & MULTIPLAYER ================= -->
+  <script>
+    /*
+      AUTHENTIC 15x15 CLOCKWISE LUDO GEOMETRY:
+      - Corner 6x6 Yards:
+        * Green  (Top-Left):     rows 0..5,  cols 0..5
+        * Yellow (Top-Right):    rows 0..5,  cols 9..14
+        * Red    (Bottom-Left):  rows 9..14, cols 0..5
+        * Blue   (Bottom-Right): rows 9..14, cols 9..14
+      - Clockwise 52-Tile Perimeter Track (indices 0..51):
+        * Red starts at index 0     -> [13, 6] (moves UP bottom-left column)
+        * Green starts at index 13  -> [6, 1]  (moves RIGHT top-left row)
+        * Yellow starts at index 26 -> [1, 8]  (moves DOWN top-right column)
+        * Blue starts at index 39   -> [8, 13] (moves LEFT bottom-right row)
+      - Home Runways (steps 51..55) & Home Triangles (step 56):
+        * Red:    [13,7] -> [9,7]  into Bottom Triangle
+        * Green:  [7,1]  -> [7,5]  into Left Triangle
+        * Yellow: [1,7]  -> [5,7]  into Top Triangle
+        * Blue:   [7,13] -> [7,9]  into Right Triangle
+    */
+
+    const TRACK_COORDS = [
+      // 0..4: Bottom arm left column going UP (Red starts at 0: [13,6])
+      [13,6], [12,6], [11,6], [10,6], [9,6],
+      // 5..10: Left arm bottom row going LEFT
+      [8,5], [8,4], [8,3], [8,2], [8,1], [8,0],
+      // 11..12: Left arm turn going UP
+      [7,0], [6,0],
+      // 13..17: Left arm top row going RIGHT (Green starts at 13: [6,1])
+      [6,1], [6,2], [6,3], [6,4], [6,5],
+      // 18..23: Top arm left column going UP
+      [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
+      // 24..25: Top arm turn going RIGHT
+      [0,7], [0,8],
+      // 26..30: Top arm right column going DOWN (Yellow starts at 26: [1,8])
+      [1,8], [2,8], [3,8], [4,8], [5,8],
+      // 31..36: Right arm top row going RIGHT
+      [6,9], [6,10], [6,11], [6,12], [6,13], [6,14],
+      // 37..38: Right arm turn going DOWN
+      [7,14], [8,14],
+      // 39..43: Right arm bottom row going LEFT (Blue starts at 39: [8,13])
+      [8,13], [8,12], [8,11], [8,10], [8,9],
+      // 44..49: Bottom arm right column going DOWN
+      [9,8], [10,8], [11,8], [12,8], [13,8], [14,8],
+      // 50..51: Bottom arm turn going LEFT
+      [14,7], [14,6]
+    ];
+
+    // 8 Authentic Safe Star Squares (4 colored starts + 4 star squares)
+    const SAFE_SQUARES = [0, 8, 13, 21, 26, 34, 39, 47];
+
+    const COLOR_START_OFFSET = {
+      red: 0,
+      green: 13,
+      yellow: 26,
+      blue: 39
+    };
+
+    const HOME_RUNWAYS = {
+      red:    [[13,7], [12,7], [11,7], [10,7], [9,7]],
+      green:  [[7,1],  [7,2],  [7,3],  [7,4],  [7,5]],
+      yellow: [[1,7],  [2,7],  [3,7],  [4,7],  [5,7]],
+      blue:   [[7,13], [7,12], [7,11], [7,10], [7,9]]
+    };
+
+    // Exact cell-unit coordinates (0..15) for the 4 slots in each 6x6 corner yard
+    // Using 1.85 and 4.15 inside each 6x6 box so slots and tokens align 100% identically
+    const YARD_SLOTS = {
+      green:  [[1.85, 1.85], [1.85, 4.15], [4.15, 1.85], [4.15, 4.15]],
+      yellow: [[1.85, 10.85], [1.85, 13.15], [4.15, 10.85], [4.15, 13.15]],
+      red:    [[10.85, 1.85], [10.85, 4.15], [13.15, 1.85], [13.15, 4.15]],
+      blue:   [[10.85, 10.85], [10.85, 13.15], [13.15, 10.85], [13.15, 13.15]]
+    };
+
+    // Home finish positions inside each colored triangle of the 3x3 center (rows 6..9, cols 6..9)
+    const HOME_FINISH_COORDS = {
+      red:    [[8.35, 7.15], [8.35, 7.85], [8.65, 7.35], [8.65, 7.65]],
+      green:  [[7.15, 6.65], [7.85, 6.65], [7.35, 6.35], [7.65, 6.35]],
+      yellow: [[6.65, 7.15], [6.65, 7.85], [6.35, 7.35], [6.35, 7.65]],
+      blue:   [[7.15, 8.35], [7.85, 8.35], [7.35, 8.65], [7.65, 8.65]]
+    };
+
+    const COLORS = ['red', 'green', 'yellow', 'blue'];
+    const COLOR_META = {
+      red:    { label: 'Red',    hex: '#e53935', start: 0,  arrow: '↑' },
+      green:  { label: 'Green',  hex: '#43a047', start: 13, arrow: '→' },
+      yellow: { label: 'Yellow', hex: '#fbc02d', start: 26, arrow: '↓' },
+      blue:   { label: 'Blue',   hex: '#1e88e5', start: 39, arrow: '←' }
+    };
+
+    let myRole = 'red';
+    let gameMode = 'local'; // 'local' or 'online'
+    let currentRoomCode = '';
+    let peer = null;
+    let peerConn = null;
+    let hostConnections = {};
+    let isHost = false;
+    let isAnimatingMove = false;
+    let botTimeout = null;
+
+    function freshTokens() {
+      return {
+        red:    [-1, -1, -1, -1],
+        green:  [-1, -1, -1, -1],
+        yellow: [-1, -1, -1, -1],
+        blue:   [-1, -1, -1, -1]
+      };
+    }
+
+    function freshGameState() {
+      return {
+        status: 'idle',
+        turn: 'red',
+        diceValue: null,
+        diceRolled: false,
+        consecutiveSixes: 0,
+        players: {
+          red:    { name: 'Player 1', connected: true,  isBot: false },
+          green:  { name: 'Bot Green', connected: true, isBot: true  },
+          yellow: { name: 'Bot Yellow', connected: true, isBot: true },
+          blue:   { name: 'Bot Blue', connected: true,  isBot: true  }
+        },
+        tokens: freshTokens(),
+        winner: null
+      };
+    }
+
+    let gameState = freshGameState();
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildBoardDOM();
+      renderDiceDots(1);
+      checkUrlParams();
+      updateLobbyUI();
+
+      // Keyboard spacebar support to roll dice
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && gameState.status === 'playing' && !gameState.diceRolled) {
+          e.preventDefault();
+          onDiceClick();
+        }
+      });
+    });
+
+    function checkUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get('room');
+      if (roomParam) {
+        document.getElementById('joinCodeInput').value = roomParam.trim().toUpperCase();
+        setStatusBadge('Invite code loaded! Click Join Room', 'text-amber-400');
+      }
+    }
+
+    function setStatusBadge(text, colorClass = 'text-emerald-400') {
+      const statusText = document.getElementById('statusText');
+      const dot = document.getElementById('statusDot');
+      if (!statusText || !dot) return;
+      statusText.innerText = text;
+      statusText.className = colorClass;
+      dot.className = `w-2 h-2 rounded-full inline-block ${colorClass.replace('text-', 'bg-')}`;
+    }
+
+    // ---------------- AUTHENTIC 15x15 BOARD BUILDER ----------------
+    function buildBoardDOM() {
+      const board = document.getElementById('boardGrid');
+      board.innerHTML = '';
+
+      for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+          // Skip cells covered by the four 6x6 corner yards and the 3x3 center home
+          const inGreenYard  = (r < 6 && c < 6);
+          const inYellowYard = (r < 6 && c >= 9);
+          const inRedYard    = (r >= 9 && c < 6);
+          const inBlueYard   = (r >= 9 && c >= 9);
+          const inCenterHome = (r >= 6 && r <= 8 && c >= 6 && c <= 8);
+
+          if (inGreenYard || inYellowYard || inRedYard || inBlueYard || inCenterHome) {
+            continue;
+          }
+
+          const cell = document.createElement('div');
+          // Explicit 1-based CSS Grid coordinates so multi-cell yards never scramble the track
+          cell.style.gridRow = `${r + 1} / ${r + 2}`;
+          cell.style.gridColumn = `${c + 1} / ${c + 2}`;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          cell.className = 'relative flex items-center justify-center text-[10px] sm:text-xs font-black border border-slate-300/80 bg-white text-slate-800 select-none';
+
+          // Home Runways
+          if (c === 7 && r >= 9 && r <= 13) {
+            cell.classList.replace('bg-white', 'bg-red-500');
+            cell.classList.add('text-white');
+          } else if (r === 7 && c >= 1 && c <= 5) {
+            cell.classList.replace('bg-white', 'bg-green-500');
+            cell.classList.add('text-white');
+          } else if (c === 7 && r >= 1 && r <= 5) {
+            cell.classList.replace('bg-white', 'bg-yellow-400');
+            cell.classList.add('text-slate-950');
+          } else if (r === 7 && c >= 9 && c <= 13) {
+            cell.classList.replace('bg-white', 'bg-blue-500');
+            cell.classList.add('text-white');
+          }
+
+          // Colored Start Squares (also Safe Star Squares)
+          if (r === 13 && c === 6) {
+            cell.classList.replace('bg-white', 'bg-red-600');
+            cell.classList.add('text-white');
+            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+          } else if (r === 6 && c === 1) {
+            cell.classList.replace('bg-white', 'bg-green-600');
+            cell.classList.add('text-white');
+            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+          } else if (r === 1 && c === 8) {
+            cell.classList.replace('bg-white', 'bg-yellow-400');
+            cell.classList.add('text-slate-950');
+            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+          } else if (r === 8 && c === 13) {
+            cell.classList.replace('bg-white', 'bg-blue-600');
+            cell.classList.add('text-white');
+            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+          } else {
+            // Other 4 Neutral Star Safe Squares
+            const idx = getTrackIndexFromCoord(r, c);
+            if (SAFE_SQUARES.includes(idx)) {
+              cell.classList.add('bg-amber-50');
+              cell.innerHTML = '<span class="text-amber-500 text-xs sm:text-sm leading-none drop-shadow-sm">★</span>';
+            }
+          }
+
+          board.appendChild(cell);
+        }
+      }
+
+      injectCornerYards();
+      injectWinningCenterTriangles();
+    }
+
+    function injectCornerYards() {
+      const board = document.getElementById('boardGrid');
+      const yardConfigs = [
+        { color: 'green',  area: '1 / 1 / 7 / 7',     bg: 'bg-green-600',  ring: 'border-green-500/40 bg-green-50' },
+        { color: 'yellow', area: '1 / 10 / 7 / 16',   bg: 'bg-yellow-400', ring: 'border-yellow-500/40 bg-yellow-50' },
+        { color: 'red',    area: '10 / 1 / 16 / 7',   bg: 'bg-red-600',    ring: 'border-red-500/40 bg-red-50' },
+        { color: 'blue',   area: '10 / 10 / 16 / 16', bg: 'bg-blue-600',   ring: 'border-blue-500/40 bg-blue-50' }
+      ];
+
+      yardConfigs.forEach(({ color, area, bg, ring }) => {
+        const yard = document.createElement('div');
+        yard.style.gridArea = area;
+        yard.className = `${bg} p-[14%] relative border border-slate-400/60 select-none`;
+
+        const innerWhite = document.createElement('div');
+        innerWhite.className = 'w-full h-full bg-white rounded-2xl shadow-inner relative';
+        yard.appendChild(innerWhite);
+
+        // Place visual circles at the exact same board percentages as YARD_SLOTS
+        // Instead of guessing with padding, we mount the 4 circles inside #boardGrid's coordinate space
+        board.appendChild(yard);
+
+        YARD_SLOTS[color].forEach(([rCoord, cCoord]) => {
+          const slotMarker = document.createElement('div');
+          slotMarker.style.top = `${(rCoord / 15) * 100}%`;
+          slotMarker.style.left = `${(cCoord / 15) * 100}%`;
+          slotMarker.style.transform = 'translate(-50%, -50%)';
+          slotMarker.className = `
+            absolute w-[8.2%] h-[8.2%] rounded-full border-2 ${ring}
+            shadow-inner pointer-events-none z-20
+          `;
+          board.appendChild(slotMarker);
+        });
+      });
+    }
+
+    function injectWinningCenterTriangles() {
+      const board = document.getElementById('boardGrid');
+      const center = document.createElement('div');
+      center.style.gridArea = '7 / 7 / 10 / 10';
+      center.className = 'relative w-full h-full bg-white overflow-hidden border border-slate-400 flex items-center justify-center z-10 pointer-events-none';
+      center.innerHTML = `
+        <div class="absolute inset-0 tri-yellow"></div>
+        <div class="absolute inset-0 tri-blue"></div>
+        <div class="absolute inset-0 tri-red"></div>
+        <div class="absolute inset-0 tri-green"></div>
+        <div class="relative z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 shadow-md border border-slate-300 flex items-center justify-center text-sm sm:text-base">🏆</div>
+      `;
+      board.appendChild(center);
+    }
+
+    function getTrackIndexFromCoord(r, c) {
+      return TRACK_COORDS.findIndex(x => x[0] === r && x[1] === c);
+    }
+
+    // ---------------- LOCAL & AI MODES ----------------
+    function startLocalMatch(preset) {
+      const userNick = document.getElementById('playerNameInput').value.trim() || 'Player 1';
+      gameMode = 'local';
+      isHost = false;
+      myRole = 'local';
+      clearTimeout(botTimeout);
+
+      gameState = freshGameState();
+      gameState.status = 'playing';
+
+      if (preset === 'pass4') {
+        COLORS.forEach((c, idx) => {
+          gameState.players[c] = {
+            name: idx === 0 ? userNick : `Player ${idx + 1}`,
+            connected: true,
+            isBot: false
+          };
+        });
+      } else {
+        const seatMap = {
+          red:    document.getElementById('seatRed').value,
+          green:  document.getElementById('seatGreen').value,
+          yellow: document.getElementById('seatYellow').value,
+          blue:   document.getElementById('seatBlue').value
+        };
+
+        let activeCount = 0;
+        COLORS.forEach((c, idx) => {
+          const mode = seatMap[c];
+          if (mode === 'none') {
+            gameState.players[c] = { name: 'Empty', connected: false, isBot: false };
+          } else {
+            activeCount++;
+            const isBot = (mode === 'bot');
+            gameState.players[c] = {
+              name: isBot ? `🤖 ${COLOR_META[c].label} Bot` : (idx === 0 ? userNick : `${COLOR_META[c].label} Player`),
+              connected: true,
+              isBot
+            };
+          }
+        });
+
+        if (activeCount < 2) {
+          gameState.players.green = { name: '🤖 Green Bot', connected: true, isBot: true };
+          showToast('Enabled Green Bot so at least 2 players are in the match!');
+        }
+      }
+
+      // Set initial turn to first active seat
+      const firstActive = COLORS.find(c => gameState.players[c].connected) || 'red';
+      gameState.turn = firstActive;
+
+      setStatusBadge('Local Match Active', 'text-emerald-400');
+      launchGameView();
+      renderGameUI();
+      maybeTriggerBotTurn();
+    }
+
+    // ---------------- ONLINE P2P MULTIPLAYER ----------------
+    function generateRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function createRoom() {
+      const name = document.getElementById('playerNameInput').value.trim() || 'Player 1';
+      currentRoomCode = generateRoomCode();
+      isHost = true;
+      myRole = 'red';
+      gameMode = 'online';
+      gameState = freshGameState();
+      gameState.status = 'waiting';
+      gameState.players = {
+        red:    { name, connected: true, isBot: false },
+        green:  { name: 'Waiting...', connected: false, isBot: false },
+        yellow: { name: 'Waiting...', connected: false, isBot: false },
+        blue:   { name: 'Waiting...', connected: false, isBot: false }
+      };
+      initPeer(currentRoomCode, true);
+    }
+
+    function joinRoom() {
+      const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+      const name = document.getElementById('playerNameInput').value.trim() || 'Player';
+      if (!code || code.length < 4) {
+        showToast('Please enter a valid 6-character Room Code.');
+        return;
+      }
+      currentRoomCode = code;
+      isHost = false;
+      myRole = null;
+      gameMode = 'online';
+      gameState = freshGameState();
+      gameState.status = 'waiting';
+      gameState.localJoinName = name;
+      initPeer(null, false);
+    }
+
+    function toggleBotsInOnlineLobby() {
+      if (!isHost) return;
+      const anyBots = COLORS.some(c => c !== 'red' && gameState.players[c].isBot);
+      COLORS.forEach(c => {
+        if (c === 'red') return;
+        // Only modify seats not taken by a live remote peer
+        const peerTaken = Object.values(hostConnections).some(x => x.color === c);
+        if (!peerTaken) {
+          if (!anyBots) {
+            gameState.players[c] = { name: `🤖 ${COLOR_META[c].label} Bot`, connected: true, isBot: true };
+          } else {
+            gameState.players[c] = { name: 'Waiting...', connected: false, isBot: false };
+          }
+        }
+      });
+      broadcastState();
+      updateLobbyUI();
+    }
+
+    function initPeer(customId, hostFlag) {
+      setStatusBadge('Connecting to PeerJS Server...', 'text-amber-400');
+      const peerOptions = {
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      };
+
+      if (peer) peer.destroy();
+      peer = customId
+        ? new Peer(`LUDO_ROYALE_${customId}`, peerOptions)
+        : new Peer(peerOptions);
+
+      peer.on('open', () => {
+        if (hostFlag) {
+          setStatusBadge('Room Ready — Share Code!', 'text-emerald-400');
+          showLobbyView();
+        } else {
+          connectToHost(`LUDO_ROYALE_${currentRoomCode}`);
+        }
+      });
+
+      peer.on('connection', (conn) => {
+        if (!isHost) return;
+        const occupied = Object.values(hostConnections).map(x => x.color);
+        const color = COLORS.find(c => c !== 'red' && !occupied.includes(c));
+        if (!color) {
+          conn.on('open', () => conn.send({ type: 'ROOM_FULL' }));
+          setTimeout(() => conn.close(), 400);
+          return;
+        }
+
+        hostConnections[conn.peer] = { conn, color };
+        setupHostConnection(conn, color);
+      });
+
+      peer.on('error', (err) => {
+        console.error(err);
+        if (err.type === 'unavailable-id') {
+          showToast('Room code conflict — generating a new room code...');
+          setTimeout(createRoom, 500);
+        } else {
+          showToast(`Network error: ${err.type}`);
+        }
+        setStatusBadge('Connection Issue', 'text-rose-400');
+      });
+    }
+
+    function connectToHost(hostPeerId) {
+      setStatusBadge('Joining host room...', 'text-amber-400');
+      peerConn = peer.connect(hostPeerId, { reliable: true });
+      peerConn.on('open', () => {
+        peerConn.send({
+          type: 'JOIN_REQUEST',
+          name: gameState.localJoinName || 'Player'
+        });
+      });
+      peerConn.on('data', handleIncomingNetworkData);
+      peerConn.on('close', () => {
+        setStatusBadge('Host disconnected', 'text-rose-400');
+        showNotification('Host left the match.', 'text-rose-400');
+      });
+    }
+
+    function setupHostConnection(conn, color) {
+      const sendInit = () => {
+        conn.send({ type: 'ASSIGN_COLOR', color, gameState });
+        updateLobbyUI();
+      };
+      if (conn.open) sendInit();
+      else conn.on('open', sendInit);
+
+      conn.on('data', msg => handleHostMessage(conn, color, msg));
+      conn.on('close', () => {
+        const entry = hostConnections[conn.peer];
+        if (entry) {
+          gameState.players[entry.color] = { name: 'Waiting...', connected: false, isBot: false };
+          delete hostConnections[conn.peer];
+          broadcastState();
+          updateLobbyUI();
+          renderGameUI();
+        }
+      });
+    }
+
+    function handleHostMessage(conn, color, msg) {
+      if (!msg) return;
+
+      if (msg.type === 'JOIN_REQUEST') {
+        gameState.players[color] = {
+          name: String(msg.name || 'Player').slice(0, 12),
+          connected: true,
+          isBot: false
+        };
+        conn.send({ type: 'ASSIGN_COLOR', color, gameState });
+        broadcastState();
+        updateLobbyUI();
+        setStatusBadge(`${gameState.players[color].name} joined as ${COLOR_META[color].label}`, 'text-emerald-400');
+        return;
+      }
+
+      if (msg.type === 'ACTION_ROLL') {
+        if (gameState.status === 'playing' && gameState.turn === color && !gameState.diceRolled && !isAnimatingMove) {
+          processRoll();
+        }
+        return;
+      }
+
+      if (msg.type === 'ACTION_MOVE') {
+        if (gameState.status === 'playing' && gameState.turn === color && gameState.diceRolled && !isAnimatingMove) {
+          processMove(color, msg.tokenIdx);
+        }
+        return;
+      }
+
+      if (msg.type === 'EMOJI_REACTION') {
+        triggerEmojiAnimation(msg.emoji);
+        broadcast({ type: 'EMOJI_REACTION', emoji: msg.emoji });
+        return;
+      }
+
+      if (msg.type === 'REQUEST_RESTART') {
+        if (isHost && gameState.status === 'ended') restartMatch();
+      }
+    }
+
+    function handleIncomingNetworkData(msg) {
+      if (!msg) return;
+
+      if (msg.type === 'ROOM_FULL') {
+        showToast('This room already has 4 players.');
+        exitToHome();
+        return;
+      }
+
+      if (msg.type === 'ASSIGN_COLOR') {
+        myRole = msg.color;
+        gameState = msg.gameState;
+        setStatusBadge(`Connected as ${COLOR_META[myRole].label}`, 'text-emerald-400');
+        if (gameState.status === 'playing') launchGameView();
+        else showLobbyView();
+        renderGameUI();
+        return;
+      }
+
+      if (msg.type === 'STATE_UPDATE') {
+        gameState = msg.state;
+        if (gameState.status === 'playing' && document.getElementById('gameView').classList.contains('hidden')) {
+          launchGameView();
+        }
+        if (gameState.status === 'ended' && gameState.winner) {
+          showVictoryModal(gameState.winner);
+        } else {
+          closeModal('victoryModal');
+        }
+        updateLobbyUI();
+        renderGameUI();
+        return;
+      }
+
+      if (msg.type === 'EMOJI_REACTION') {
+        triggerEmojiAnimation(msg.emoji);
+        return;
+      }
+
+      if (msg.type === 'DICE_ROLLED') {
+        sound.playDiceShake();
+        animateDiceRoll(msg.value);
+      }
+    }
+
+    function broadcast(msg) {
+      Object.values(hostConnections).forEach(({ conn }) => {
+        if (conn && conn.open) conn.send(msg);
+      });
+    }
+
+    function broadcastState() {
+      if (!isHost) return;
+      broadcast({ type: 'STATE_UPDATE', state: gameState });
+    }
+
+    function startOnlineGame() {
+      if (!isHost) return;
+      const connected = COLORS.filter(c => gameState.players[c].connected).length;
+      if (connected < 2) {
+        showToast('Add a Bot or wait for at least 1 friend to join!');
+        return;
+      }
+      gameState.status = 'playing';
+      gameState.turn = 'red';
+      gameState.diceValue = null;
+      gameState.diceRolled = false;
+      gameState.consecutiveSixes = 0;
+      broadcastState();
+      launchGameView();
+      renderGameUI();
+      maybeTriggerBotTurn();
+    }
+
+    // ---------------- VIEW NAVIGATION ----------------
+    function showLobbyView() {
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('gameView').classList.add('hidden');
+      document.getElementById('lobbyView').classList.remove('hidden');
+      document.getElementById('leaveRoomBtn').classList.remove('hidden');
+      document.getElementById('lobbyRoomCode').innerText = currentRoomCode;
+      const fullUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
+      document.getElementById('lobbyShareUrl').value = fullUrl;
+      updateLobbyUI();
+    }
+
+    function updateLobbyUI() {
+      COLORS.forEach(color => {
+        const cap = color[0].toUpperCase() + color.slice(1);
+        const nameEl = document.getElementById(`lobby${cap}Name`);
+        const statusEl = document.getElementById(`lobby${cap}Status`);
+        if (!nameEl || !statusEl) return;
+        const p = gameState.players[color];
+        nameEl.innerText = p.connected ? p.name : 'Waiting...';
+        statusEl.innerText = p.connected ? (p.isBot ? 'Bot Ready' : 'Ready') : 'Open';
+        statusEl.className = p.connected
+          ? 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold'
+          : 'text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold';
+      });
+
+      const startBtn = document.getElementById('startOnlineBtn');
+      const addBotBtn = document.getElementById('addBotLobbyBtn');
+      if (startBtn) {
+        const count = COLORS.filter(c => gameState.players[c].connected).length;
+        startBtn.disabled = !isHost || count < 2;
+        startBtn.classList.toggle('opacity-50', startBtn.disabled);
+      }
+      if (addBotBtn) {
+        addBotBtn.classList.toggle('hidden', !isHost);
+      }
+    }
+
+    function launchGameView() {
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('lobbyView').classList.add('hidden');
+      document.getElementById('gameView').classList.remove('hidden');
+      document.getElementById('leaveRoomBtn').classList.remove('hidden');
+      renderGameUI();
+    }
+
+    function exitToHome() {
+      clearTimeout(botTimeout);
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      peerConn = null;
+      hostConnections = {};
+      currentRoomCode = '';
+      isHost = false;
+      isAnimatingMove = false;
+      myRole = 'red';
+      gameMode = 'local';
+      gameState = freshGameState();
+
+      closeModal('victoryModal');
+      document.getElementById('gameView').classList.add('hidden');
+      document.getElementById('lobbyView').classList.add('hidden');
+      document.getElementById('leaveRoomBtn').classList.add('hidden');
+      document.getElementById('homeView').classList.remove('hidden');
+      setStatusBadge('Ready to Play', 'text-emerald-400');
+      updateLobbyUI();
+    }
+
+    function copyInviteLink() {
+      const input = document.getElementById('lobbyShareUrl');
+      input.select();
+      document.execCommand('copy');
+      document.getElementById('copyBtnText').innerText = 'Copied!';
+      document.getElementById('copyBtnIcon').innerText = '✅';
+      setTimeout(() => {
+        document.getElementById('copyBtnText').innerText = 'Copy';
+        document.getElementById('copyBtnIcon').innerText = '📋';
+      }, 2000);
+    }
+
+    // ---------------- CORE LUDO GAMEPLAY & AI ----------------
+    function isCurrentTurnBot() {
+      const p = gameState.players[gameState.turn];
+      return Boolean(p && p.connected && p.isBot);
+    }
+
+    function isMyTurn() {
+      if (gameState.status !== 'playing' || isAnimatingMove) return false;
+      if (isCurrentTurnBot()) return false;
+      if (gameMode === 'local') return true;
+      return myRole === gameState.turn;
+    }
+
+    function maybeTriggerBotTurn() {
+      clearTimeout(botTimeout);
+      if (gameState.status !== 'playing' || isAnimatingMove) return;
+      if (gameMode === 'online' && !isHost) return; // Host drives bots in online matches
+
+      const currentColor = gameState.turn;
+      const player = gameState.players[currentColor];
+      if (!player || !player.connected || !player.isBot) return;
+
+      botTimeout = setTimeout(() => {
+        if (gameState.status !== 'playing' || gameState.turn !== currentColor) return;
+        if (!gameState.diceRolled) {
+          processRoll();
+        }
+      }, 650);
+    }
+
+    function chooseBestBotMove(color, legalIndices, dice) {
+      // Smart heuristic for AI Bot:
+      // Prioritize: 1) Reaching Home (56), 2) Capturing an opponent, 3) Exiting yard on a 6, 4) Landing on a Safe Star, 5) Advancing furthest pawn
+      let bestIdx = legalIndices[0];
+      let bestScore = -9999;
+
+      legalIndices.forEach(idx => {
+        const curStep = gameState.tokens[color][idx];
+        const nextStep = curStep === -1 ? 0 : curStep + dice;
+        let score = nextStep * 2;
+
+        if (nextStep === 56) score += 500;
+        if (curStep === -1 && dice === 6) score += 220;
+
+        const abs = getAbsoluteTrackIndex(color, nextStep);
+        if (abs !== null) {
+          if (SAFE_SQUARES.includes(abs)) score += 90;
+          else {
+            // Check if this lands on an opponent pawn to capture it
+            COLORS.filter(c => c !== color).forEach(opp => {
+              gameState.tokens[opp].forEach(oppStep => {
+                if (getAbsoluteTrackIndex(opp, oppStep) === abs) {
+                  score += 350;
+                }
+              });
+            });
+          }
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = idx;
+        }
+      });
+
+      return bestIdx;
+    }
+
+    function onDiceClick() {
+      if (gameState.status !== 'playing' || gameState.diceRolled || !isMyTurn() || isAnimatingMove) return;
+
+      if (gameMode === 'online' && !isHost) {
+        if (peerConn?.open) peerConn.send({ type: 'ACTION_ROLL' });
+        return;
+      }
+
+      processRoll();
+    }
+
+    function processRoll() {
+      if (gameState.diceRolled || gameState.status !== 'playing' || isAnimatingMove) return;
+
+      const value = Math.floor(Math.random() * 6) + 1;
+      gameState.diceValue = value;
+      gameState.diceRolled = true;
+
+      sound.playDiceShake();
+      if (gameMode === 'online' && isHost) {
+        broadcast({ type: 'DICE_ROLLED', value });
+      }
+
+      animateDiceRoll(value, () => {
+        if (value === 6) gameState.consecutiveSixes++;
+        else gameState.consecutiveSixes = 0;
+
+        if (gameState.consecutiveSixes >= 3) {
+          gameState.consecutiveSixes = 0;
+          gameState.diceRolled = false;
+          showNotification(`Three 6s in a row! Roll forfeited — passing turn.`, 'text-rose-400');
+          renderGameUI();
+          if (gameMode === 'online' && isHost) broadcastState();
+          setTimeout(switchTurn, 900);
+          return;
+        }
+
+        const color = gameState.turn;
+        const legal = gameState.tokens[color]
+          .map((pos, idx) => isValidMove(pos, value) ? idx : null)
+          .filter(x => x !== null);
+
+        if (legal.length === 0) {
+          showNotification(`${COLOR_META[color].label} rolled ${value} — no legal moves available.`, 'text-slate-400');
+          renderGameUI();
+          if (gameMode === 'online' && isHost) broadcastState();
+          setTimeout(switchTurn, 850);
+          return;
+        }
+
+        renderGameUI();
+        if (gameMode === 'online' && isHost) broadcastState();
+
+        // Auto-move if only 1 legal move OR if it's a Bot's turn
+        if (isCurrentTurnBot()) {
+          const chosen = chooseBestBotMove(color, legal, value);
+          showNotification(`${gameState.players[color].name} rolled ${value} and is moving...`, 'text-amber-300');
+          setTimeout(() => processMove(color, chosen), 420);
+        } else if (legal.length === 1) {
+          showNotification(`Rolled ${value} — auto-moving only playable pawn!`, 'text-emerald-400');
+          setTimeout(() => processMove(color, legal[0]), 320);
+        } else {
+          showNotification(`Rolled ${value}! Click a glowing ${COLOR_META[color].label} pawn to move.`, 'text-amber-400');
+        }
+      });
+    }
+
+    function animateDiceRoll(finalValue, onComplete) {
+      const diceBtn = document.getElementById('diceBtn');
+      diceBtn.classList.add('dice-rolling');
+      let count = 0;
+      const interval = setInterval(() => {
+        renderDiceDots(Math.floor(Math.random() * 6) + 1);
+        count++;
+        if (count > 6) {
+          clearInterval(interval);
+          diceBtn.classList.remove('dice-rolling');
+          renderDiceDots(finalValue);
+          if (onComplete) onComplete();
+        }
+      }, 50);
+    }
+
+    function renderDiceDots(val) {
+      const container = document.getElementById('diceFaceDisplay');
+      if (!container) return;
+      container.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.className = 'w-full h-full grid grid-cols-3 grid-rows-3 gap-1 place-items-center';
+      const map = {
+        1: [4],
+        2: [0, 8],
+        3: [0, 4, 8],
+        4: [0, 2, 6, 8],
+        5: [0, 2, 4, 6, 8],
+        6: [0, 2, 3, 5, 6, 8]
+      };
+      const active = new Set(map[val] || map[1]);
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'w-full h-full flex items-center justify-center';
+        if (active.has(i)) {
+          const pip = document.createElement('div');
+          pip.className = `dice-pip ${val === 1 || val === 6 ? 'dice-pip-red' : ''}`;
+          cell.appendChild(pip);
+        }
+        grid.appendChild(cell);
+      }
+      container.appendChild(grid);
+    }
+
+    function isValidMove(currentStep, dice) {
+      if (!dice) return false;
+      if (currentStep === -1) return dice === 6;
+      if (currentStep >= 56) return false;
+      return currentStep + dice <= 56;
+    }
+
+    function onTokenClick(color, tokenIdx) {
+      if (gameState.status !== 'playing' || !isMyTurn() || gameState.turn !== color || !gameState.diceRolled || isAnimatingMove) return;
+
+      if (gameMode === 'online' && !isHost) {
+        if (peerConn?.open) peerConn.send({ type: 'ACTION_MOVE', tokenIdx });
+        return;
+      }
+
+      processMove(color, tokenIdx);
+    }
+
+    function processMove(color, tokenIdx) {
+      if (gameState.status !== 'playing' || gameState.turn !== color || !gameState.diceRolled || isAnimatingMove) return;
+
+      const startStep = gameState.tokens[color][tokenIdx];
+      const dice = gameState.diceValue;
+      if (!isValidMove(startStep, dice)) return;
+
+      isAnimatingMove = true;
+
+      // Step-by-step hop animation
+      const targetStep = (startStep === -1) ? 0 : startStep + dice;
+      const stepsToAnimate = [];
+      if (startStep === -1) {
+        stepsToAnimate.push(0);
+      } else {
+        for (let s = startStep + 1; s <= targetStep; s++) {
+          stepsToAnimate.push(s);
+        }
+      }
+
+      let hopIndex = 0;
+      const stepInterval = setInterval(() => {
+        gameState.tokens[color][tokenIdx] = stepsToAnimate[hopIndex];
+        sound.playHop();
+        renderTokensLayer();
+        hopIndex++;
+
+        if (hopIndex >= stepsToAnimate.length) {
+          clearInterval(stepInterval);
+          finalizeMove(color, tokenIdx, startStep, targetStep, dice);
+        }
+      }, 115);
+    }
+
+    function finalizeMove(color, tokenIdx, startStep, newStep, dice) {
+      isAnimatingMove = false;
+      let bonus = (dice === 6);
+
+      if (startStep === -1) {
+        showNotification(`${COLOR_META[color].label} brought a pawn out onto the track!`, 'text-emerald-400');
+      }
+
+      if (newStep === 56) {
+        bonus = true;
+        sound.playBonus();
+        showNotification(`${COLOR_META[color].label} pawn reached HOME! Bonus roll! 🎉`, 'text-amber-400');
+      }
+
+      // Check captures on non-safe track squares
+      const abs = getAbsoluteTrackIndex(color, newStep);
+      if (abs !== null && !SAFE_SQUARES.includes(abs)) {
+        COLORS.filter(c => c !== color).forEach(opponent => {
+          gameState.tokens[opponent].forEach((oppStep, idx) => {
+            const oppAbs = getAbsoluteTrackIndex(opponent, oppStep);
+            if (oppAbs !== null && oppAbs === abs) {
+              gameState.tokens[opponent][idx] = -1;
+              bonus = true;
+              sound.playCapture();
+              showNotification(`${COLOR_META[color].label} captured ${COLOR_META[opponent].label}'s pawn! Bonus roll! 💥`, 'text-rose-400');
+            }
+          });
+        });
+      }
+
+      // Check victory condition (all 4 pawns at 56)
+      if (gameState.tokens[color].every(s => s === 56)) {
+        gameState.winner = color;
+        gameState.status = 'ended';
+        gameState.diceRolled = false;
+        sound.playVictory();
+        triggerConfetti();
+        showVictoryModal(color);
+        renderGameUI();
+        if (gameMode === 'online' && isHost) broadcastState();
+        return;
+      }
+
+      if (bonus) {
+        gameState.diceRolled = false;
+        gameState.diceValue = null;
+        renderGameUI();
+        if (gameMode === 'online' && isHost) broadcastState();
+        maybeTriggerBotTurn();
+      } else {
+        switchTurn();
+      }
+    }
+
+    function switchTurn() {
+      const currentIndex = COLORS.indexOf(gameState.turn);
+      let nextIndex = (currentIndex + 1) % COLORS.length;
+
+      for (let i = 0; i < COLORS.length; i++) {
+        const candidate = COLORS[nextIndex];
+        if (gameState.players[candidate]?.connected) {
+          gameState.turn = candidate;
+          break;
+        }
+        nextIndex = (nextIndex + 1) % COLORS.length;
+      }
+
+      gameState.diceRolled = false;
+      gameState.diceValue = null;
+      gameState.consecutiveSixes = 0;
+      renderGameUI();
+      if (gameMode === 'online' && isHost) broadcastState();
+      maybeTriggerBotTurn();
+    }
+
+    function getAbsoluteTrackIndex(color, step) {
+      if (step < 0 || step > 50) return null;
+      return (COLOR_START_OFFSET[color] + step) % 52;
+    }
+
+    // Returns cell-center coordinates [rowCenter, colCenter] in 0..15 space
+    function getTokenBaseCoordinates(color, step, tokenIdx) {
+      if (step === -1) {
+        return YARD_SLOTS[color][tokenIdx];
+      }
+      if (step >= 0 && step <= 50) {
+        const [r, c] = TRACK_COORDS[getAbsoluteTrackIndex(color, step)];
+        return [r + 0.5, c + 0.5];
+      }
+      if (step >= 51 && step <= 55) {
+        const [r, c] = HOME_RUNWAYS[color][step - 51];
+        return [r + 0.5, c + 0.5];
+      }
+      return HOME_FINISH_COORDS[color][tokenIdx];
+    }
+
+    // ---------------- UI & TOKEN LAYER RENDERING ----------------
+    function showNotification(text, colorClass = 'text-slate-300') {
+      const el = document.getElementById('gameNotification');
+      if (!el) return;
+      el.innerText = text;
+      el.className = `mt-2.5 text-xs font-semibold ${colorClass} text-center min-h-[1.25rem] px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800 transition-all`;
+    }
+
+    function renderGameUI() {
+      if (!document.getElementById('gameView')) return;
+
+      COLORS.forEach(color => {
+        const cap = color[0].toUpperCase() + color.slice(1);
+        const p = gameState.players[color];
+        const nameEl = document.getElementById(`game${cap}Name`);
+        const scoreEl = document.getElementById(`game${cap}Score`);
+        const card = document.getElementById(`card${cap}`);
+        const badge = document.getElementById(`badge${cap}Turn`);
+
+        if (nameEl) nameEl.innerText = p?.connected ? p.name : 'Empty Seat';
+        if (scoreEl) scoreEl.innerText = p?.connected
+          ? `Home: ${gameState.tokens[color].filter(s => s === 56).length}/4`
+          : 'Inactive';
+
+        const active = (gameState.turn === color && gameState.status === 'playing');
+        if (badge) badge.classList.toggle('hidden', !active);
+
+        if (card) {
+          card.className = `flex items-center justify-between p-2 rounded-xl border transition-all ${
+            active
+              ? color === 'red'    ? 'border-2 border-red-500 bg-red-950/50 shadow-lg shadow-red-950/50'
+              : color === 'green'  ? 'border-2 border-green-500 bg-green-950/50 shadow-lg shadow-green-950/50'
+              : color === 'yellow' ? 'border-2 border-yellow-400 bg-yellow-950/50 shadow-lg shadow-yellow-950/50'
+              : 'border-2 border-blue-500 bg-blue-950/50 shadow-lg shadow-blue-950/50'
+              : 'border-slate-800 bg-slate-900/40 opacity-65'
+          }`;
+        }
+      });
+
+      const turn = gameState.turn;
+      const meta = COLOR_META[turn];
+      const badge = document.getElementById('turnBadge');
+      const turnPlayerName = gameState.players[turn]?.name || meta.label;
+      badge.innerText = `${turnPlayerName}'s Turn`;
+      badge.style.backgroundColor = meta.hex;
+      badge.style.color = turn === 'yellow' ? '#0f172a' : '#ffffff';
+
+      const valBadge = document.getElementById('diceValueBadge');
+      if (valBadge) {
+        valBadge.innerText = gameState.diceValue ? `Rolled: ${gameState.diceValue}` : 'Roll Dice';
+      }
+
+      const myTurn = isMyTurn();
+      const diceHelper = document.getElementById('diceHelperText');
+      if (isCurrentTurnBot()) {
+        diceHelper.innerText = `${turnPlayerName} is thinking...`;
+        diceHelper.className = 'text-[11px] font-semibold text-amber-300 mt-1.5 text-center';
+      } else if (myTurn) {
+        diceHelper.innerText = gameState.diceRolled ? 'Tap a glowing pawn' : 'Click Dice or Space';
+        diceHelper.className = `text-[11px] font-bold ${gameState.diceRolled ? 'text-emerald-400' : 'text-amber-400'} mt-1.5 text-center`;
+      } else {
+        diceHelper.innerText = 'Waiting for opponent...';
+        diceHelper.className = 'text-[11px] font-medium text-slate-500 mt-1.5 text-center';
+      }
+
+      document.getElementById('turnSubText').innerText =
+        gameState.status === 'ended' ? 'Match complete!' :
+        isCurrentTurnBot() ? 'AI Bot Turn' :
+        myTurn ? (gameState.diceRolled ? 'Select a highlighted pawn on the board' : 'Your turn to roll the dice') :
+        `Waiting for ${turnPlayerName}`;
+
+      const sixBadge = document.getElementById('consecutiveSixesBadge');
+      if (gameState.consecutiveSixes > 0) {
+        sixBadge.classList.remove('hidden');
+        document.getElementById('sixCountVal').innerText = gameState.consecutiveSixes;
+      } else {
+        sixBadge.classList.add('hidden');
+      }
+
+      if (gameState.diceValue) renderDiceDots(gameState.diceValue);
+      renderTokensLayer();
+    }
+
+    function renderTokensLayer() {
+      const layer = document.getElementById('tokensLayer');
+      if (!layer) return;
+      layer.innerHTML = '';
+
+      // Group tokens that share the same square so we can neatly fan them out
+      const cellGroups = {};
+      const tokenItems = [];
+
+      COLORS.forEach(color => {
+        if (!gameState.players[color]?.connected) return;
+        gameState.tokens[color].forEach((step, idx) => {
+          const [rCenter, cCenter] = getTokenBaseCoordinates(color, step, idx);
+          const groupKey = (step >= 0 && step <= 55)
+            ? `${Math.round(rCenter * 10)}_${Math.round(cCenter * 10)}`
+            : `unique_${color}_${idx}`;
+
+          if (!cellGroups[groupKey]) cellGroups[groupKey] = [];
+          const item = { color, step, idx, rCenter, cCenter, groupKey };
+          cellGroups[groupKey].push(item);
+          tokenItems.push(item);
+        });
+      });
+
+      const clusterOffsets = [
+        [0, 0],
+        [-0.16, -0.16],
+        [0.16, 0.16],
+        [-0.16, 0.16],
+        [0.16, -0.16]
+      ];
+
+      tokenItems.forEach(item => {
+        const { color, step, idx, rCenter, cCenter, groupKey } = item;
+        const group = cellGroups[groupKey];
+        let rFinal = rCenter;
+        let cFinal = cCenter;
+
+        if (group.length > 1) {
+          const posInGroup = group.indexOf(item);
+          const [dr, dc] = clusterOffsets[(posInGroup + 1) % clusterOffsets.length];
+          rFinal += dr;
+          cFinal += dc;
+        }
+
+        const topPct = (rFinal / 15) * 100;
+        const leftPct = (cFinal / 15) * 100;
+
+        const movable = isMyTurn() &&
+          gameState.turn === color &&
+          gameState.diceRolled &&
+          isValidMove(step, gameState.diceValue);
+
+        const token = document.createElement('button');
+        token.type = 'button';
+        token.style.top = `${topPct}%`;
+        token.style.left = `${leftPct}%`;
+        token.style.transform = 'translate(-50%, -50%)';
+
+        const colorStyles =
+          color === 'red'    ? 'bg-gradient-to-b from-red-500 to-red-700 text-white border-white' :
+          color === 'green'  ? 'bg-gradient-to-b from-green-500 to-green-700 text-white border-white' :
+          color === 'yellow' ? 'bg-gradient-to-b from-yellow-300 to-yellow-500 text-slate-950 border-slate-900' :
+                               'bg-gradient-to-b from-blue-500 to-blue-700 text-white border-white';
+
+        const sizeClasses = group.length > 1 && step >= 0 && step <= 55
+          ? 'w-[5.2%] h-[5.2%] text-[9px]'
+          : 'w-[5.8%] h-[5.8%] text-[10px] sm:text-xs';
+
+        token.className = `
+          absolute ${sizeClasses} rounded-full flex items-center justify-center font-black
+          shadow-[0_3px_6px_rgba(0,0,0,0.55)] border-2 pointer-events-auto transition-all duration-150
+          ${colorStyles}
+          ${movable ? 'token-movable ring-4 ring-amber-300' : 'z-20'}
+        `;
+
+        token.innerHTML = step === 56 ? '★' : (idx + 1);
+        if (movable) {
+          token.onclick = (e) => {
+            e.stopPropagation();
+            onTokenClick(color, idx);
+          };
+        }
+        layer.appendChild(token);
+      });
+    }
+
+    // ---------------- CHAT / VICTORY ----------------
+    function sendEmoji(emoji) {
+      triggerEmojiAnimation(emoji);
+      if (gameMode === 'online') {
+        if (isHost) broadcast({ type: 'EMOJI_REACTION', emoji });
+        else if (peerConn?.open) peerConn.send({ type: 'EMOJI_REACTION', emoji });
+      }
+    }
+
+    function triggerEmojiAnimation(emoji) {
+      const container = document.getElementById('emojiFloatContainer');
+      const el = document.createElement('div');
+      el.className = 'text-5xl sm:text-6xl animate-bounce filter drop-shadow-2xl';
+      el.innerText = emoji;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    }
+
+    function showVictoryModal(color) {
+      const winner = gameState.players[color]?.name || COLOR_META[color].label;
+      document.getElementById('winnerTitle').innerText = `${winner} Wins!`;
+      document.getElementById('winnerDesc').innerText = `All 4 ${COLOR_META[color].label} pawns reached the center Home triangle!`;
+      openModal('victoryModal');
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 160, spread: 90, origin: { y: 0.6 } });
+      }
+    }
+
+    function restartMatch() {
+      if (gameMode === 'online' && !isHost) {
+        if (peerConn?.open) peerConn.send({ type: 'REQUEST_RESTART' });
+        return;
+      }
+
+      clearTimeout(botTimeout);
+      isAnimatingMove = false;
+      gameState.tokens = freshTokens();
+      gameState.turn = COLORS.find(c => gameState.players[c]?.connected) || 'red';
+      gameState.diceValue = null;
+      gameState.diceRolled = false;
+      gameState.consecutiveSixes = 0;
+      gameState.winner = null;
+      gameState.status = 'playing';
+
+      closeModal('victoryModal');
+      renderGameUI();
+      if (gameMode === 'online' && isHost) broadcastState();
+      maybeTriggerBotTurn();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  </script>
+</body>
+</html>
