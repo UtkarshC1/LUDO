@@ -3,33 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Classic Ludo Royale - 4 Player Online & Local Multiplayer</title>
+  <title>Classic Ludo Royale — Bright Glassmorphic Edition</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- PeerJS for 100% Free Peer-to-Peer WebRTC Multiplayer (Vercel & GitHub Pages ready) -->
+  <!-- PeerJS for 100% Free Peer-to-Peer WebRTC Multiplayer -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
     :root {
-      --red-color: #e53935;
-      --green-color: #43a047;
-      --yellow-color: #fbc02d;
-      --blue-color: #1e88e5;
+      --red-color: #f43f5e;
+      --green-color: #10b981;
+      --yellow-color: #f59e0b;
+      --blue-color: #3b82f6;
     }
 
     body {
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       touch-action: manipulation;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      background: linear-gradient(135deg, #f0f9ff 0%, #fdf2f8 45%, #fefce8 100%);
+      color: #0f172a;
     }
 
     .font-game {
       font-family: 'Fredoka', cursive;
+    }
+
+    /* Animated Ambient Pastel Blobs */
+    @keyframes floatSlow {
+      0%, 100% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -25px) scale(1.06); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    .ambient-blob {
+      animation: floatSlow 14s ease-in-out infinite;
+    }
+    .ambient-blob-delay {
+      animation: floatSlow 18s ease-in-out infinite reverse;
+    }
+
+    /* Frosted Glassmorphism Utilities */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.76);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.07), 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.68);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
     }
 
     /* 15x15 Exact Board Ratio */
@@ -44,45 +76,54 @@
        Top = Yellow, Right = Blue, Bottom = Red, Left = Green */
     .tri-yellow {
       clip-path: polygon(0% 0%, 100% 0%, 50% 50%);
-      background-color: var(--yellow-color);
+      background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
     }
     .tri-blue {
       clip-path: polygon(100% 0%, 100% 100%, 50% 50%);
-      background-color: var(--blue-color);
+      background: linear-gradient(270deg, #60a5fa 0%, #2563eb 100%);
     }
     .tri-red {
       clip-path: polygon(0% 100%, 100% 100%, 50% 50%);
-      background-color: var(--red-color);
+      background: linear-gradient(0deg, #fb7185 0%, #e11d48 100%);
     }
     .tri-green {
       clip-path: polygon(0% 0%, 50% 50%, 0% 100%);
-      background-color: var(--green-color);
+      background: linear-gradient(90deg, #34d399 0%, #059669 100%);
     }
 
     /* Movable Token Pulse Animation */
     @keyframes tokenPulse {
       0%, 100% {
         transform: translate(-50%, -50%) scale(1);
-        filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.9));
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7), 0 6px 12px rgba(15, 23, 42, 0.35);
       }
       50% {
-        transform: translate(-50%, -50%) scale(1.24);
-        filter: drop-shadow(0 0 12px rgba(250, 204, 21, 1));
+        transform: translate(-50%, -50%) scale(1.25);
+        box-shadow: 0 0 0 8px rgba(251, 191, 36, 0), 0 10px 18px rgba(15, 23, 42, 0.45);
       }
     }
 
     .token-movable {
-      animation: tokenPulse 0.85s infinite ease-in-out;
+      animation: tokenPulse 0.9s infinite ease-in-out;
       cursor: pointer;
       z-index: 45 !important;
     }
 
+    /* Target Square Preview Highlight */
+    @keyframes destPulse {
+      0%, 100% { transform: scale(0.82); opacity: 0.75; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+    .dest-highlight {
+      animation: destPulse 0.85s infinite ease-in-out;
+    }
+
     /* 3D Dice Real Rolling Wobble */
     @keyframes diceRollAnim {
-      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.9); }
-      25% { transform: rotateX(180deg) rotateY(90deg) rotateZ(45deg) scale(1.08); }
-      50% { transform: rotateX(360deg) rotateY(270deg) rotateZ(-30deg) scale(0.95); }
-      75% { transform: rotateX(540deg) rotateY(180deg) rotateZ(90deg) scale(1.05); }
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(0.92); }
+      25% { transform: rotateX(180deg) rotateY(90deg) rotateZ(45deg) scale(1.1); }
+      50% { transform: rotateX(360deg) rotateY(270deg) rotateZ(-35deg) scale(0.96); }
+      75% { transform: rotateX(540deg) rotateY(180deg) rotateZ(75deg) scale(1.06); }
       100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(0deg) scale(1); }
     }
 
@@ -96,132 +137,171 @@
       height: 11px;
       background: #1e293b;
       border-radius: 9999px;
-      box-shadow: inset 1px 1px 2px rgba(0,0,0,0.65);
+      box-shadow: inset 1px 1px 2px rgba(0,0,0,0.45);
     }
     .dice-pip-red {
-      background: #dc2626 !important;
+      background: #e11d48 !important;
+      box-shadow: 0 0 6px rgba(225, 29, 72, 0.45);
     }
 
-    /* Custom scrollbars */
+    /* Floating Particle Burst */
+    @keyframes particleBurst {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; }
+    }
+    .board-particle {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 9999px;
+      pointer-events: none;
+      animation: particleBurst 0.68s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Custom subtle scrollbars */
     ::-webkit-scrollbar {
       width: 5px;
+      height: 5px;
     }
     ::-webkit-scrollbar-thumb {
-      background: #334155;
+      background: #cbd5e1;
       border-radius: 10px;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-rose-500 selection:text-white">
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-rose-500 selection:text-white relative">
+
+  <!-- ================= AMBIENT PASTEL MESH BACKGROUND ================= -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="ambient-blob absolute -top-24 -left-24 w-96 h-96 rounded-full bg-rose-300/35 blur-3xl"></div>
+    <div class="ambient-blob-delay absolute top-1/4 -right-24 w-[28rem] h-[28rem] rounded-full bg-sky-300/35 blur-3xl"></div>
+    <div class="ambient-blob absolute -bottom-28 left-1/3 w-96 h-96 rounded-full bg-amber-200/45 blur-3xl"></div>
+    <div class="ambient-blob-delay absolute bottom-10 left-10 w-72 h-72 rounded-full bg-emerald-200/35 blur-3xl"></div>
+  </div>
 
   <!-- ================= CUSTOM TOAST ALERT ================= -->
-  <div id="toastBanner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2.5 rounded-2xl bg-slate-900/95 border border-amber-500/40 text-amber-300 text-xs font-bold shadow-2xl backdrop-blur transition-all">
-    Notification
+  <div id="toastBanner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden px-5 py-2.5 rounded-2xl glass-panel border border-rose-200 text-slate-800 text-xs font-bold shadow-xl transition-all flex items-center gap-2">
+    <span>✨</span>
+    <span id="toastText">Notification</span>
   </div>
 
   <!-- ================= TOP HEADER ================= -->
-  <header class="px-3 sm:px-5 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between sticky top-0 z-40 backdrop-blur">
+  <header class="px-3 sm:px-6 py-2.5 glass-panel sticky top-0 z-40 flex items-center justify-between border-b border-white/80">
     <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 via-amber-500 to-emerald-500 flex items-center justify-center font-game font-bold text-lg shadow-lg shadow-rose-950/40 text-white">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-400 to-sky-500 flex items-center justify-center font-game font-bold text-xl shadow-md shadow-rose-500/20 text-white border border-white/60">
         🎲
       </div>
       <div>
-        <h1 class="text-sm sm:text-base font-black tracking-tight flex items-center gap-1.5 leading-none">
-          Classic Ludo <span class="text-[10px] uppercase font-bold tracking-widest bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded">ROYALE</span>
+        <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 flex items-center gap-1.5 leading-none">
+          Ludo Royale <span class="text-[10px] uppercase font-extrabold tracking-widest bg-gradient-to-r from-rose-500 to-amber-500 text-white px-2 py-0.5 rounded-full shadow-sm">GLASS</span>
         </h1>
-        <div class="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block" id="statusDot"></span>
+        <div class="text-[11px] text-slate-500 font-semibold mt-0.5 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" id="statusDot"></span>
           <span id="statusText">Ready to Play</span>
         </div>
       </div>
     </div>
 
-    <div class="flex items-center gap-2">
-      <!-- Audio Toggle -->
-      <button id="soundBtn" onclick="toggleAudio()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition active:scale-95 text-sm" title="Toggle Sound">
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- BGM Music Synthesizer Toggle -->
+      <button id="bgmBtn" onclick="toggleBGM()" class="px-2.5 py-1.5 rounded-xl glass-card hover:bg-white text-slate-700 transition active:scale-95 text-xs font-bold flex items-center gap-1 shadow-sm" title="Toggle Ambient Background Music">
+        <span id="bgmIcon">🎵</span>
+        <span id="bgmLabel" class="hidden md:inline text-[11px]">BGM Off</span>
+      </button>
+
+      <!-- SFX Toggle -->
+      <button id="soundBtn" onclick="toggleAudio()" class="px-2.5 py-1.5 rounded-xl glass-card hover:bg-white text-slate-700 transition active:scale-95 text-xs font-bold flex items-center gap-1 shadow-sm" title="Toggle Sound Effects">
         <span id="soundIcon">🔊</span>
+        <span class="hidden md:inline text-[11px]">SFX</span>
+      </button>
+
+      <!-- Live Chat Drawer Toggle -->
+      <button onclick="toggleChatDrawer()" class="relative px-2.5 py-1.5 rounded-xl glass-card hover:bg-white text-slate-700 transition active:scale-95 text-xs font-bold flex items-center gap-1 shadow-sm" title="Open Match Chat">
+        <span>💬</span>
+        <span class="hidden sm:inline text-[11px]">Chat</span>
+        <span id="chatUnreadBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow">0</span>
       </button>
 
       <!-- Rules Guide -->
-      <button onclick="openModal('rulesModal')" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition flex items-center gap-1">
+      <button onclick="openModal('rulesModal')" class="px-2.5 py-1.5 rounded-xl glass-card hover:bg-white text-xs font-bold text-slate-700 transition flex items-center gap-1 shadow-sm">
         <span>📜</span> <span class="hidden sm:inline">Rules</span>
       </button>
 
       <!-- Deploy Guide -->
-      <button onclick="openModal('deployModal')" class="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition items-center gap-1">
+      <button onclick="openModal('deployModal')" class="hidden lg:flex px-2.5 py-1.5 rounded-xl glass-card hover:bg-white text-xs font-bold text-slate-700 transition items-center gap-1 shadow-sm">
         <span>🚀</span> Deploy
       </button>
 
       <!-- Leave Button -->
-      <button id="leaveRoomBtn" onclick="exitToHome()" class="hidden px-2.5 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs font-semibold transition">
-        Exit Match
+      <button id="leaveRoomBtn" onclick="exitToHome()" class="hidden px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-200 text-xs font-extrabold transition shadow-sm">
+        Exit
       </button>
     </div>
   </header>
 
   <!-- ================= VIEW 1: HOME SCREEN ================= -->
   <section id="homeView" class="flex-1 flex flex-col items-center justify-center p-4">
-    <div class="max-w-md w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-2xl backdrop-blur relative overflow-hidden">
+    <div class="max-w-md w-full glass-panel rounded-[2rem] p-6 sm:p-8 relative overflow-hidden">
       
-      <div class="absolute -top-16 -right-16 w-48 h-48 bg-rose-600/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -top-16 -right-16 w-44 h-44 bg-rose-400/20 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-16 -left-16 w-44 h-44 bg-sky-400/20 rounded-full blur-2xl pointer-events-none"></div>
 
-      <div class="text-center mb-5 relative">
-        <div class="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-rose-600 via-amber-500 to-emerald-500 shadow-xl shadow-rose-600/20 mb-2.5 text-3xl">
+      <div class="text-center mb-6 relative">
+        <div class="inline-flex p-3.5 rounded-3xl bg-gradient-to-tr from-rose-500 via-amber-400 to-emerald-400 shadow-xl shadow-rose-500/20 mb-3 text-3xl border-2 border-white">
           👑
         </div>
-        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-white font-game">Classic Ludo Royale</h2>
-        <p class="text-slate-400 text-xs mt-1">Authentic 15×15 Board • Star Safe Zones • Online & Local Modes</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 font-game">Classic Ludo Royale</h2>
+        <p class="text-slate-500 text-xs font-medium mt-1">Sunlit Glassmorphic Edition • 15×15 Board • Live Chat & BGM</p>
       </div>
 
-      <div class="space-y-3.5 mb-5 relative">
+      <div class="space-y-4 mb-5 relative">
         <div>
-          <label class="block text-xs uppercase tracking-wider font-bold text-slate-400 mb-1">Your Nickname</label>
-          <input id="playerNameInput" type="text" maxlength="12" placeholder="e.g. MasterRoller" value="Player 1"
-            class="w-full px-4 py-2.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 transition text-sm">
+          <label class="block text-[11px] uppercase tracking-wider font-extrabold text-slate-500 mb-1.5">Your Player Profile</label>
+          <input id="playerNameInput" type="text" maxlength="12" placeholder="Enter your nickname..." value="Player 1"
+            class="w-full px-4 py-2.5 bg-white/90 border border-slate-200/90 rounded-2xl text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-rose-400 shadow-sm transition text-sm">
         </div>
 
         <!-- Local / Bot Quick Setup -->
-        <div class="p-3.5 bg-slate-800/50 rounded-2xl border border-slate-700/70 space-y-2.5">
+        <div class="p-4 bg-white/65 rounded-2xl border border-white/90 shadow-sm space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="text-base">🎮</span>
+              <span class="text-lg">🎮</span>
               <div>
-                <div class="text-xs font-bold text-white">Instant Local & AI Match</div>
-                <div class="text-[10px] text-slate-400">Configure seats as Human, Smart Bot, or Off</div>
+                <div class="text-xs font-extrabold text-slate-800">Instant Local & Smart AI Match</div>
+                <div class="text-[10px] text-slate-500 font-medium">Configure seats as Human, AI Bot, or Off</div>
               </div>
             </div>
-            <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">OFFLINE</span>
+            <span class="text-[10px] bg-emerald-100 text-emerald-700 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200">INSTANT</span>
           </div>
 
           <!-- Seat Selectors for Local Mode -->
-          <div class="grid grid-cols-2 gap-1.5 text-xs">
-            <div class="flex items-center justify-between bg-slate-900/90 border border-red-500/30 rounded-xl px-2.5 py-1.5">
-              <span class="font-bold text-red-400 flex items-center gap-1">🔴 Red</span>
-              <select id="seatRed" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center justify-between bg-rose-50/80 border border-rose-200/80 rounded-xl px-2.5 py-1.5">
+              <span class="font-extrabold text-rose-600 flex items-center gap-1">🔴 Red</span>
+              <select id="seatRed" class="bg-white text-slate-800 text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-rose-200 focus:outline-none">
                 <option value="human" selected>Human</option>
                 <option value="bot">🤖 Bot</option>
               </select>
             </div>
-            <div class="flex items-center justify-between bg-slate-900/90 border border-green-500/30 rounded-xl px-2.5 py-1.5">
-              <span class="font-bold text-green-400 flex items-center gap-1">🟢 Green</span>
-              <select id="seatGreen" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+            <div class="flex items-center justify-between bg-emerald-50/80 border border-emerald-200/80 rounded-xl px-2.5 py-1.5">
+              <span class="font-extrabold text-emerald-600 flex items-center gap-1">🟢 Green</span>
+              <select id="seatGreen" class="bg-white text-slate-800 text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-emerald-200 focus:outline-none">
                 <option value="human">Human</option>
                 <option value="bot" selected>🤖 Bot</option>
                 <option value="none">Off</option>
               </select>
             </div>
-            <div class="flex items-center justify-between bg-slate-900/90 border border-yellow-500/30 rounded-xl px-2.5 py-1.5">
-              <span class="font-bold text-yellow-300 flex items-center gap-1">🟡 Yellow</span>
-              <select id="seatYellow" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+            <div class="flex items-center justify-between bg-amber-50/80 border border-amber-200/80 rounded-xl px-2.5 py-1.5">
+              <span class="font-extrabold text-amber-600 flex items-center gap-1">🟡 Yellow</span>
+              <select id="seatYellow" class="bg-white text-slate-800 text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-amber-200 focus:outline-none">
                 <option value="human">Human</option>
                 <option value="bot" selected>🤖 Bot</option>
                 <option value="none">Off</option>
               </select>
             </div>
-            <div class="flex items-center justify-between bg-slate-900/90 border border-blue-500/30 rounded-xl px-2.5 py-1.5">
-              <span class="font-bold text-blue-400 flex items-center gap-1">🔵 Blue</span>
-              <select id="seatBlue" class="bg-slate-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+            <div class="flex items-center justify-between bg-sky-50/80 border border-sky-200/80 rounded-xl px-2.5 py-1.5">
+              <span class="font-extrabold text-sky-600 flex items-center gap-1">🔵 Blue</span>
+              <select id="seatBlue" class="bg-white text-slate-800 text-[11px] font-bold rounded-lg px-1.5 py-0.5 border border-sky-200 focus:outline-none">
                 <option value="human">Human</option>
                 <option value="bot" selected>🤖 Bot</option>
                 <option value="none">Off</option>
@@ -230,11 +310,11 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="startLocalMatch('custom')" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+            <button onclick="startLocalMatch('custom')" class="py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold rounded-xl shadow-md shadow-emerald-500/20 text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
               <span>▶️</span>
               <span>Start Match</span>
             </button>
-            <button onclick="startLocalMatch('pass4')" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+            <button onclick="startLocalMatch('pass4')" class="py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition active:scale-95">
               <span>👥</span>
               <span>4P Pass & Play</span>
             </button>
@@ -242,215 +322,252 @@
         </div>
 
         <div class="flex items-center my-2">
-          <div class="flex-1 border-t border-slate-800"></div>
-          <span class="px-3 text-[10px] font-mono tracking-widest text-slate-500 uppercase">ONLINE P2P MULTIPLAYER</span>
-          <div class="flex-1 border-t border-slate-800"></div>
+          <div class="flex-1 border-t border-slate-200"></div>
+          <span class="px-3 text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">ONLINE P2P MULTIPLAYER</span>
+          <div class="flex-1 border-t border-slate-200"></div>
         </div>
 
         <!-- Action 1: Create Online Room -->
-        <button onclick="createRoom()" class="w-full py-3 px-4 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transform active:scale-95 transition text-sm">
+        <button onclick="createRoom()" class="w-full py-3 px-4 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transform active:scale-95 transition text-sm">
           <span>✨</span>
-          <span>Create Online Room (2–4 Players)</span>
+          <span>Create Online Room (With Live Chat)</span>
         </button>
 
         <!-- Action 2: Join Online Room -->
         <div class="flex gap-2">
           <input id="joinCodeInput" type="text" maxlength="8" placeholder="ROOM CODE"
-            class="w-1/2 px-3 py-2.5 bg-slate-800/90 border border-slate-700 rounded-2xl text-center text-sm font-mono font-bold tracking-widest uppercase text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition placeholder:text-slate-500">
-          <button onclick="joinRoom()" class="w-1/2 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 font-bold rounded-2xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs">
+            class="w-1/2 px-3 py-2.5 bg-white/90 border border-slate-200 rounded-2xl text-center text-sm font-mono font-black tracking-widest uppercase text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400 shadow-sm transition placeholder:text-slate-400">
+          <button onclick="joinRoom()" class="w-1/2 py-2.5 px-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-extrabold rounded-2xl flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 transition active:scale-95 text-xs">
             <span>🚀</span>
             <span>Join Room</span>
           </button>
         </div>
       </div>
 
-      <div class="flex justify-between items-center text-xs text-slate-500 pt-3 border-t border-slate-800/80">
-        <button onclick="openModal('rulesModal')" class="hover:text-amber-400 transition underline underline-offset-4">Classic Rules Guide</button>
-        <button onclick="openModal('deployModal')" class="hover:text-amber-400 transition underline underline-offset-4">Free Vercel/GitHub Hosting</button>
+      <div class="flex justify-between items-center text-xs text-slate-500 font-semibold pt-3 border-t border-slate-200/70">
+        <button onclick="openModal('rulesModal')" class="hover:text-rose-500 transition underline underline-offset-4">Classic Rules</button>
+        <button onclick="openModal('deployModal')" class="hover:text-sky-600 transition underline underline-offset-4">Free Vercel Hosting</button>
       </div>
     </div>
   </section>
 
   <!-- ================= VIEW 2: LOBBY ================= -->
   <section id="lobbyView" class="hidden flex-1 flex flex-col items-center justify-center p-4">
-    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative">
-      <div class="w-14 h-14 bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mx-auto mb-3 animate-bounce text-2xl">
+    <div class="max-w-md w-full glass-panel rounded-[2rem] p-6 sm:p-8 text-center relative">
+      <div class="w-14 h-14 bg-amber-100 border border-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-3 animate-bounce text-2xl shadow-sm">
         ⌛
       </div>
-      <h2 class="text-2xl font-black text-white font-game mb-1">Online Room Lobby</h2>
-      <p class="text-slate-400 text-xs mb-4">Share the room code or link with friends. Host can start as soon as 2+ players are ready!</p>
+      <h2 class="text-2xl font-black text-slate-900 font-game mb-1">Online Room Lobby</h2>
+      <p class="text-slate-500 text-xs font-medium mb-4">Share the room code or link with friends. Chat is live!</p>
 
       <!-- Code Box -->
-      <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 mb-3">
-        <div class="text-[10px] uppercase font-mono tracking-widest text-slate-500 mb-0.5">Room Code</div>
-        <div id="lobbyRoomCode" class="text-3xl sm:text-4xl font-black font-mono tracking-widest text-amber-400">------</div>
+      <div class="bg-white/90 p-3.5 rounded-2xl border border-slate-200 shadow-inner mb-3">
+        <div class="text-[10px] uppercase font-extrabold tracking-widest text-slate-400 mb-0.5">Room Invite Code</div>
+        <div id="lobbyRoomCode" class="text-3xl sm:text-4xl font-black font-mono tracking-widest bg-gradient-to-r from-rose-500 to-amber-500 bg-clip-text text-transparent">------</div>
       </div>
 
       <!-- Invite Link -->
       <div class="flex gap-2 mb-5">
         <input id="lobbyShareUrl" type="text" readonly
-          class="flex-1 bg-slate-800/90 border border-slate-700 text-xs px-3.5 py-2.5 rounded-xl font-mono text-slate-300 truncate focus:outline-none">
-        <button onclick="copyInviteLink()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0">
+          class="flex-1 bg-white/80 border border-slate-200 text-xs px-3.5 py-2.5 rounded-xl font-mono text-slate-600 truncate focus:outline-none">
+        <button onclick="copyInviteLink()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 shadow">
           <span id="copyBtnIcon">📋</span>
           <span id="copyBtnText">Copy</span>
         </button>
       </div>
 
       <!-- Player Slots -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5 text-left">
-        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5 text-left">
+        <div class="p-3 bg-rose-50/70 rounded-2xl border border-rose-200 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-bold text-white text-xs shadow">R</div>
-            <div><div id="lobbyRedName" class="text-xs font-bold text-white">Player 1</div><div class="text-[10px] text-red-400 font-semibold">Red • Host</div></div>
-          </div><span id="lobbyRedStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">Ready</span>
+            <div class="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center font-bold text-white text-xs shadow">R</div>
+            <div><div id="lobbyRedName" class="text-xs font-extrabold text-slate-800">Player 1</div><div class="text-[10px] text-rose-500 font-bold">Red • Host</div></div>
+          </div><span id="lobbyRedStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold">Ready</span>
         </div>
-        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+        <div class="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center font-bold text-white text-xs shadow">G</div>
-            <div><div id="lobbyGreenName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-green-400 font-semibold">Green</div></div>
-          </div><span id="lobbyGreenStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+            <div class="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center font-bold text-white text-xs shadow">G</div>
+            <div><div id="lobbyGreenName" class="text-xs font-extrabold text-slate-500">Waiting...</div><div class="text-[10px] text-emerald-600 font-bold">Green</div></div>
+          </div><span id="lobbyGreenStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">Open</span>
         </div>
-        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+        <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center font-bold text-slate-950 text-xs shadow">Y</div>
-            <div><div id="lobbyYellowName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-yellow-400 font-semibold">Yellow</div></div>
-          </div><span id="lobbyYellowStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+            <div class="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center font-bold text-slate-900 text-xs shadow">Y</div>
+            <div><div id="lobbyYellowName" class="text-xs font-extrabold text-slate-500">Waiting...</div><div class="text-[10px] text-amber-600 font-bold">Yellow</div></div>
+          </div><span id="lobbyYellowStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">Open</span>
         </div>
-        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 flex items-center justify-between">
+        <div class="p-3 bg-sky-50/70 rounded-2xl border border-sky-200 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-xs shadow">B</div>
-            <div><div id="lobbyBlueName" class="text-xs font-bold text-slate-400">Waiting...</div><div class="text-[10px] text-blue-400 font-semibold">Blue</div></div>
-          </div><span id="lobbyBlueStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold">Open</span>
+            <div class="w-8 h-8 rounded-xl bg-sky-500 flex items-center justify-center font-bold text-white text-xs shadow">B</div>
+            <div><div id="lobbyBlueName" class="text-xs font-extrabold text-slate-500">Waiting...</div><div class="text-[10px] text-sky-600 font-bold">Blue</div></div>
+          </div><span id="lobbyBlueStatus" class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold">Open</span>
         </div>
       </div>
 
       <div class="flex gap-2 mb-3">
-        <button id="addBotLobbyBtn" onclick="toggleBotsInOnlineLobby()" class="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold rounded-xl text-xs transition">
+        <button id="addBotLobbyBtn" onclick="toggleBotsInOnlineLobby()" class="w-1/2 py-3 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 font-extrabold rounded-xl text-xs transition">
           🤖 Fill Open Seats w/ Bots
         </button>
-        <button id="startOnlineBtn" onclick="startOnlineGame()" disabled class="w-1/2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition disabled:cursor-not-allowed opacity-50">
+        <button id="startOnlineBtn" onclick="startOnlineGame()" disabled class="w-1/2 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black rounded-xl text-xs shadow-md transition disabled:cursor-not-allowed opacity-50">
           🎮 Start Match
         </button>
       </div>
 
-      <button onclick="exitToHome()" class="text-xs text-slate-500 hover:text-slate-300 transition">
-        ← Cancel & Return Home
-      </button>
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="exitToHome()" class="text-xs font-bold text-slate-500 hover:text-rose-500 transition">
+          ← Leave Lobby
+        </button>
+        <button onclick="toggleChatDrawer()" class="text-xs font-extrabold text-sky-600 hover:text-sky-700 flex items-center gap-1">
+          <span>💬 Open Lobby Chat</span>
+        </button>
+      </div>
     </div>
   </section>
 
   <!-- ================= VIEW 3: LIVE LUDO GAME ================= -->
-  <main id="gameView" class="hidden flex-1 flex flex-col items-center justify-center p-2 sm:p-4 max-w-6xl mx-auto w-full">
+  <main id="gameView" class="hidden flex-1 flex flex-col items-center justify-center px-2 sm:px-4 py-2 max-w-6xl mx-auto w-full">
     
     <!-- Top Player Status Cards -->
-    <div class="w-full grid grid-cols-2 lg:grid-cols-4 gap-2 bg-slate-900/80 border border-slate-800 p-2 sm:p-2.5 rounded-2xl mb-2">
-      <div id="cardGreen" class="flex items-center justify-between p-2 rounded-xl border border-green-500/20 bg-slate-800/40 transition-all">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <div class="w-8 h-8 rounded-xl bg-green-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">G</div>
+    <div class="w-full grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2">
+      <div id="cardGreen" class="relative flex items-center justify-between p-2.5 rounded-2xl glass-card transition-all">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0">G</div>
           <div class="overflow-hidden">
-            <div id="gameGreenName" class="text-xs font-bold truncate text-green-300">Green</div>
-            <div id="gameGreenScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+            <div id="gameGreenName" class="text-xs font-extrabold truncate text-slate-800">Green</div>
+            <div id="gameGreenScore" class="text-[10px] font-bold text-slate-500">Home: 0/4</div>
           </div>
         </div>
-        <span id="badgeGreenTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-green-500 text-slate-950">TURN</span>
+        <span id="badgeGreenTurn" class="hidden text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm animate-pulse">TURN</span>
       </div>
 
-      <div id="cardYellow" class="flex items-center justify-between p-2 rounded-xl border border-yellow-500/20 bg-slate-800/40 transition-all">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <div class="w-8 h-8 rounded-xl bg-yellow-400 flex items-center justify-center font-bold text-slate-950 shadow text-sm shrink-0">Y</div>
+      <div id="cardYellow" class="relative flex items-center justify-between p-2.5 rounded-2xl glass-card transition-all">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center font-black text-slate-900 shadow-sm text-sm shrink-0">Y</div>
           <div class="overflow-hidden">
-            <div id="gameYellowName" class="text-xs font-bold truncate text-yellow-300">Yellow</div>
-            <div id="gameYellowScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+            <div id="gameYellowName" class="text-xs font-extrabold truncate text-slate-800">Yellow</div>
+            <div id="gameYellowScore" class="text-[10px] font-bold text-slate-500">Home: 0/4</div>
           </div>
         </div>
-        <span id="badgeYellowTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-yellow-400 text-slate-950">TURN</span>
+        <span id="badgeYellowTurn" class="hidden text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 shadow-sm animate-pulse">TURN</span>
       </div>
 
-      <div id="cardRed" class="flex items-center justify-between p-2 rounded-xl border border-red-500/20 bg-slate-800/40 transition-all">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <div class="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">R</div>
+      <div id="cardRed" class="relative flex items-center justify-between p-2.5 rounded-2xl glass-card transition-all">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0">R</div>
           <div class="overflow-hidden">
-            <div id="gameRedName" class="text-xs font-bold truncate text-red-300">Red</div>
-            <div id="gameRedScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+            <div id="gameRedName" class="text-xs font-extrabold truncate text-slate-800">Red</div>
+            <div id="gameRedScore" class="text-[10px] font-bold text-slate-500">Home: 0/4</div>
           </div>
         </div>
-        <span id="badgeRedTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-red-500 text-white">TURN</span>
+        <span id="badgeRedTurn" class="hidden text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-sm animate-pulse">TURN</span>
       </div>
 
-      <div id="cardBlue" class="flex items-center justify-between p-2 rounded-xl border border-blue-500/20 bg-slate-800/40 transition-all">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <div class="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow text-sm shrink-0">B</div>
+      <div id="cardBlue" class="relative flex items-center justify-between p-2.5 rounded-2xl glass-card transition-all">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center font-black text-white shadow-sm text-sm shrink-0">B</div>
           <div class="overflow-hidden">
-            <div id="gameBlueName" class="text-xs font-bold truncate text-blue-300">Blue</div>
-            <div id="gameBlueScore" class="text-[10px] text-slate-400">Home: 0/4</div>
+            <div id="gameBlueName" class="text-xs font-extrabold truncate text-slate-800">Blue</div>
+            <div id="gameBlueScore" class="text-[10px] font-bold text-slate-500">Home: 0/4</div>
           </div>
         </div>
-        <span id="badgeBlueTurn" class="hidden text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-blue-500 text-white">TURN</span>
+        <span id="badgeBlueTurn" class="hidden text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-sky-500 text-white shadow-sm animate-pulse">TURN</span>
       </div>
     </div>
 
-    <!-- Turn announcement -->
-    <div class="w-full text-center mb-2">
-      <div id="turnBadge" class="inline-block text-[11px] sm:text-xs uppercase font-extrabold px-3.5 py-1 rounded-full bg-red-600 text-white shadow-md whitespace-nowrap transition-colors">Red's Turn</div>
-      <div id="turnSubText" class="text-[11px] text-slate-400 font-medium mt-0.5">Roll the dice to begin</div>
+    <!-- Turn Banner + Smooth Turn Timer Bar -->
+    <div class="w-full max-w-md text-center mb-2">
+      <div class="flex items-center justify-center gap-2">
+        <div id="turnBadge" class="inline-block text-[11px] sm:text-xs uppercase font-black px-4 py-1 rounded-full bg-rose-500 text-white shadow-sm whitespace-nowrap transition-colors">Red's Turn</div>
+        <span id="turnSubText" class="text-xs text-slate-600 font-bold">Roll the dice to begin</span>
+      </div>
+      <!-- Animated Visual Turn Progress Bar -->
+      <div class="w-48 h-1.5 bg-white/80 rounded-full mx-auto mt-1.5 overflow-hidden border border-slate-200/80 shadow-inner">
+        <div id="turnTimerBar" class="h-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-500 transition-all duration-300" style="width: 100%;"></div>
+      </div>
     </div>
 
-    <!-- Central Arena: Authentic 15x15 Board + Controls -->
-    <div class="w-full flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-6">
+    <!-- Central Arena: Authentic 15x15 Board + Glass Control Dock -->
+    <div class="w-full flex flex-col lg:flex-row items-center justify-center gap-4 sm:gap-6">
       
       <!-- LUDO 15x15 BOARD CONTAINER -->
-      <div class="relative w-full max-w-[430px] sm:max-w-[490px] aspect-square bg-slate-900 rounded-2xl shadow-2xl p-2 sm:p-2.5 border-4 border-slate-800 select-none">
+      <div class="relative w-full max-w-[430px] sm:max-w-[490px] aspect-square glass-panel rounded-[1.75rem] p-2.5 sm:p-3.5 select-none shadow-2xl border-2 border-white">
         
-        <!-- Reaction Emoji Floating Popups -->
-        <div id="emojiFloatContainer" class="absolute inset-0 pointer-events-none z-50 flex items-center justify-center"></div>
+        <!-- Reaction Emoji & Chat Bubble Floating Popups -->
+        <div id="emojiFloatContainer" class="absolute inset-0 pointer-events-none z-50 flex flex-col items-center justify-center gap-2"></div>
 
-        <!-- Inner Board Wrapper so Grid and Token Overlay share the exact same 100% coordinate box -->
-        <div class="relative w-full h-full rounded-xl overflow-hidden shadow-inner border-2 border-slate-700 bg-white">
+        <!-- Inner Board Wrapper so Grid, Previews, Particles, and Tokens share the exact 100% coordinate box -->
+        <div class="relative w-full h-full rounded-2xl overflow-hidden shadow-inner border-2 border-slate-300/90 bg-white">
           <!-- 15x15 Grid Layout -->
-          <div id="boardGrid" class="ludo-grid w-full h-full relative z-10">
-            <!-- Explicitly positioned 15x15 cells, 6x6 yards, and 3x3 center triangles -->
-          </div>
+          <div id="boardGrid" class="ludo-grid w-full h-full relative z-10"></div>
+
+          <!-- Destination Highlight Layer -->
+          <div id="previewLayer" class="absolute inset-0 pointer-events-none z-20"></div>
+
+          <!-- Particle Effects Layer -->
+          <div id="particleLayer" class="absolute inset-0 pointer-events-none z-40 overflow-hidden"></div>
 
           <!-- Active Pawns Interactive Overlay Layer -->
-          <div id="tokensLayer" class="absolute inset-0 pointer-events-none z-30">
-            <!-- Positioned tokens with exact percentage coordinates -->
-          </div>
+          <div id="tokensLayer" class="absolute inset-0 pointer-events-none z-30"></div>
         </div>
       </div>
 
-      <!-- CONTROLS & 3D DICE TRAY -->
-      <div class="w-full md:w-56 flex md:flex-col items-center justify-between md:justify-center gap-3 bg-slate-900/70 border border-slate-800/90 p-3 sm:p-4 rounded-3xl">
+      <!-- RIGHT CONTROL DOCK: 3D DICE + EMOJIS + MINI LIVE CHAT FEED -->
+      <div class="w-full max-w-[430px] sm:max-w-[490px] lg:w-72 flex flex-col gap-3">
         
-        <!-- Dice Rolling Widget -->
-        <div class="flex flex-col items-center flex-1 md:flex-none">
-          <button id="diceBtn" onclick="onDiceClick()" class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-white via-slate-100 to-slate-200 border-4 border-slate-300 rounded-3xl shadow-xl flex items-center justify-center cursor-pointer transform active:scale-95 transition-all select-none">
-            <div id="diceFaceDisplay" class="w-full h-full p-3 flex items-center justify-center">
-              <!-- Dot pips rendered via JS -->
+        <!-- Dice & Quick Reactions Card -->
+        <div class="glass-panel p-4 rounded-3xl flex sm:flex-row lg:flex-col items-center justify-between gap-4">
+          <div class="flex flex-col items-center flex-1">
+            <button id="diceBtn" onclick="onDiceClick()" class="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-white via-slate-50 to-slate-100 border-4 border-white rounded-3xl shadow-[0_12px_28px_rgba(15,23,42,0.12)] flex items-center justify-center cursor-pointer transform hover:scale-105 active:scale-95 transition-all select-none ring-4 ring-rose-400/40">
+              <div id="diceFaceDisplay" class="w-full h-full p-3.5 flex items-center justify-center"></div>
+            </button>
+
+            <div id="diceValueBadge" class="mt-2.5 text-xs font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full bg-white text-slate-800 border border-slate-200 shadow-sm">
+              Ready
             </div>
-          </button>
-          
-          <div id="diceValueBadge" class="mt-2 text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700">
-            Ready
+
+            <div id="diceHelperText" class="text-[11px] font-extrabold text-rose-500 mt-1 text-center">
+              Tap Dice or Spacebar
+            </div>
+
+            <!-- Consecutive Sixes Indicator -->
+            <div id="consecutiveSixesBadge" class="hidden text-[10px] font-extrabold text-amber-700 mt-1 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
+              🔥 Six Streak: <span id="sixCountVal">1</span>/3
+            </div>
           </div>
 
-          <div id="diceHelperText" class="text-[11px] font-bold text-amber-400 mt-1.5 text-center">
-            Click Dice or Press Space
-          </div>
-
-          <!-- Consecutive Sixes Indicator -->
-          <div id="consecutiveSixesBadge" class="hidden text-[10px] font-mono text-amber-400 mt-1 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
-            Six Streak: <span id="sixCountVal">1</span>/3
+          <!-- Quick Emoji Bar -->
+          <div class="bg-white/75 border border-white p-2 rounded-2xl grid grid-cols-3 gap-1.5 shadow-inner">
+            <button onclick="sendEmoji('😂')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">😂</button>
+            <button onclick="sendEmoji('🎯')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">🎯</button>
+            <button onclick="sendEmoji('🔥')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">🔥</button>
+            <button onclick="sendEmoji('😭')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">😭</button>
+            <button onclick="sendEmoji('🎲')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">🎲</button>
+            <button onclick="sendEmoji('👑')" class="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-lg transition active:scale-90">👑</button>
           </div>
         </div>
 
-        <!-- Quick Chat Emojis -->
-        <div class="bg-slate-950/80 border border-slate-800 p-2 rounded-2xl flex md:grid md:grid-cols-3 gap-1.5 shadow-inner">
-          <button onclick="sendEmoji('😂')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">😂</button>
-          <button onclick="sendEmoji('🎯')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🎯</button>
-          <button onclick="sendEmoji('🔥')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🔥</button>
-          <button onclick="sendEmoji('😭')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">😭</button>
-          <button onclick="sendEmoji('🎲')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">🎲</button>
-          <button onclick="sendEmoji('👑')" class="w-9 h-9 rounded-xl hover:bg-slate-800 flex items-center justify-center text-lg transition active:scale-90">👑</button>
+        <!-- Embedded Live Chat & Action Feed Box -->
+        <div class="glass-panel p-3.5 rounded-3xl flex flex-col h-52">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/70">
+            <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+              <span>💬</span> Live Match Chat
+            </span>
+            <button onclick="toggleChatDrawer()" class="text-[10px] font-bold text-sky-600 hover:underline">Expand ↗</button>
+          </div>
+
+          <!-- Messages Stream -->
+          <div id="miniChatMessages" class="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs">
+            <div class="text-[11px] text-slate-400 italic text-center py-4">Say hello or tap a quick phrase! 👋</div>
+          </div>
+
+          <!-- Mini Chat Input -->
+          <form onsubmit="submitMiniChat(event)" class="mt-2 flex gap-1.5">
+            <input id="miniChatInput" type="text" maxlength="100" placeholder="Type message..."
+              class="flex-1 px-3 py-1.5 rounded-xl bg-white/90 border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400">
+            <button type="submit" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-extrabold shadow-sm active:scale-95 transition">
+              Send
+            </button>
+          </form>
         </div>
 
       </div>
@@ -458,82 +575,120 @@
     </div>
 
     <!-- Real-time Status / Rule helper -->
-    <div id="gameNotification" class="mt-2.5 text-xs font-semibold text-slate-300 text-center min-h-[1.25rem] px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800">
-      Roll a 6 to bring a pawn out onto the starting square!
+    <div id="gameNotification" class="mt-2.5 text-xs font-bold text-slate-700 text-center min-h-[1.5rem] px-4 py-1 rounded-full glass-card">
+      Roll a 6 to bring a pawn out onto your colored starting arrow!
     </div>
   </main>
 
+  <!-- ================= SLIDE-OVER FULL CHAT DRAWER ================= -->
+  <aside id="chatDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-sm glass-panel border-l border-white shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="p-4 border-b border-slate-200/80 flex items-center justify-between bg-white/60">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">💬</span>
+        <div>
+          <h3 class="text-sm font-black text-slate-900">Royale Match Chat</h3>
+          <p class="text-[10px] font-semibold text-slate-500">Real-Time P2P & Smart Bot Banter</p>
+        </div>
+      </div>
+      <button onclick="toggleChatDrawer()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-600 font-bold flex items-center justify-center transition">✕</button>
+    </div>
+
+    <!-- Quick Preset Chips -->
+    <div class="px-3 py-2 bg-white/40 border-b border-slate-200/60 flex gap-1.5 overflow-x-auto no-scrollbar">
+      <button onclick="sendQuickChat('Good luck everyone! 🎲')" class="shrink-0 text-[11px] font-bold bg-white hover:bg-sky-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shadow-sm transition">Good luck! 🎲</button>
+      <button onclick="sendQuickChat('Nice move! 🔥')" class="shrink-0 text-[11px] font-bold bg-white hover:bg-sky-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shadow-sm transition">Nice move! 🔥</button>
+      <button onclick="sendQuickChat('Oops, sorry! 😅')" class="shrink-0 text-[11px] font-bold bg-white hover:bg-sky-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shadow-sm transition">Sorry! 😅</button>
+      <button onclick="sendQuickChat('Please hurry! ⏳')" class="shrink-0 text-[11px] font-bold bg-white hover:bg-sky-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shadow-sm transition">Hurry! ⏳</button>
+      <button onclick="sendQuickChat('GG Well Played! 👑')" class="shrink-0 text-[11px] font-bold bg-white hover:bg-sky-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full shadow-sm transition">GG! 👑</button>
+    </div>
+
+    <!-- Full Chat History -->
+    <div id="drawerChatMessages" class="flex-1 p-4 overflow-y-auto space-y-2.5"></div>
+
+    <!-- Chat Input Bar -->
+    <form onsubmit="submitDrawerChat(event)" class="p-3 bg-white/75 border-t border-slate-200/80 flex gap-2">
+      <input id="drawerChatInput" type="text" maxlength="120" placeholder="Write a message..."
+        class="flex-1 px-3.5 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400">
+      <button type="submit" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 text-white text-xs font-extrabold shadow-md active:scale-95 transition">
+        Send
+      </button>
+    </form>
+  </aside>
+
   <!-- ================= MODAL: VICTORY CELEBRATION ================= -->
-  <div id="victoryModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-3xl p-6 text-center shadow-2xl relative">
-      <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-4xl mx-auto mb-4 shadow-xl shadow-amber-500/20">
+  <div id="victoryModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-sm w-full glass-panel rounded-[2rem] p-7 text-center shadow-2xl relative border-2 border-white">
+      <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center text-4xl mx-auto mb-4 shadow-xl shadow-amber-500/25 border-2 border-white animate-bounce">
         🏆
       </div>
-      <h2 id="winnerTitle" class="text-3xl font-black text-white font-game mb-1">VICTORY!</h2>
-      <p id="winnerDesc" class="text-slate-300 text-xs sm:text-sm mb-6">Player 1 brought all 4 pawns home!</p>
-      <div class="space-y-2">
-        <button onclick="restartMatch()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl shadow-lg transition active:scale-95">
-          Play Rematch
+      <h2 id="winnerTitle" class="text-3xl font-black text-slate-900 font-game mb-1">VICTORY!</h2>
+      <p id="winnerDesc" class="text-slate-600 text-xs sm:text-sm font-medium mb-6">Player 1 brought all 4 pawns home!</p>
+      <div class="space-y-2.5">
+        <button onclick="restartMatch()" class="w-full py-3.5 bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 text-white font-black rounded-2xl shadow-lg transition active:scale-95">
+          🔄 Play Rematch
         </button>
-        <button onclick="exitToHome()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
-          Exit to Home
+        <button onclick="exitToHome()" class="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold rounded-2xl text-xs transition">
+          Return to Home
         </button>
       </div>
     </div>
   </div>
 
   <!-- ================= MODAL: CLASSIC RULES GUIDE ================= -->
-  <div id="rulesModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative text-left">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2"><span>📜</span> Classic Ludo Rules</h3>
-        <button onclick="closeModal('rulesModal')" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+  <div id="rulesModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-md w-full glass-panel rounded-[2rem] p-6 shadow-2xl relative text-left border-2 border-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><span>📜</span> Classic Ludo Royale Rules</h3>
+        <button onclick="closeModal('rulesModal')" class="text-slate-400 hover:text-slate-800 text-lg font-bold">✕</button>
       </div>
-      <div class="space-y-2 text-xs text-slate-300 leading-relaxed max-h-[65vh] overflow-y-auto pr-1">
+      <div class="space-y-2.5 text-xs text-slate-700 font-medium leading-relaxed max-h-[65vh] overflow-y-auto pr-1">
         <p>• <strong>Yard Exit:</strong> Roll a <strong>6</strong> to move a pawn out of its corner yard onto your colored starting square.</p>
+        <p>• <strong>Destination Preview:</strong> When you roll the dice, valid destination squares pulse on the board to guide your move.</p>
         <p>• <strong>3 Consecutive Sixes:</strong> Rolling three 6s in a row forfeits the third roll and passes the turn to the next player.</p>
         <p>• <strong>Bonus Rolls:</strong> Earn an extra roll whenever you roll a <strong>6</strong>, capture an opponent's pawn, or bring a pawn into the center Home triangle.</p>
         <p>• <strong>Safe Squares (★):</strong> All 4 colored starting squares and the 4 starred track squares (8 total) are safe zones—no pawn can be captured on a ★ square.</p>
-        <p>• <strong>Captures:</strong> Landing on an opponent's pawn on a non-safe square sends that opponent's pawn back to its yard.</p>
+        <p>• <strong>Captures:</strong> Landing on an opponent's pawn on a non-safe square sends that opponent's pawn back to its yard with a particle burst!</p>
         <p>• <strong>Exact Home Entry:</strong> After completing 51 track steps, pawns enter their colored Home Runway and require an exact roll to reach step 56 (Home).</p>
-        <p>• <strong>Clockwise Order:</strong> Red (Bottom-Left) → Green (Top-Left) → Yellow (Top-Right) → Blue (Bottom-Right).</p>
       </div>
-      <button onclick="closeModal('rulesModal')" class="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-400 font-bold rounded-xl text-xs text-slate-950 transition">
+      <button onclick="closeModal('rulesModal')" class="mt-5 w-full py-2.5 bg-slate-900 hover:bg-slate-800 font-extrabold rounded-xl text-xs text-white transition">
         Got It!
       </button>
     </div>
   </div>
 
   <!-- ================= MODAL: DEPLOYMENT GUIDE ================= -->
-  <div id="deployModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative text-left">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2"><span>🚀</span> Deploy Free to GitHub & Vercel</h3>
-        <button onclick="closeModal('deployModal')" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+  <div id="deployModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-md w-full glass-panel rounded-[2rem] p-6 shadow-2xl relative text-left border-2 border-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-3">
+        <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2"><span>🚀</span> Deploy Free to GitHub & Vercel</h3>
+        <button onclick="closeModal('deployModal')" class="text-slate-400 hover:text-slate-800 text-lg font-bold">✕</button>
       </div>
-      <div class="space-y-2 text-xs text-slate-300 leading-relaxed">
-        <p>This application is 100% self-contained in a <strong>single static HTML file</strong> with zero build configuration.</p>
-        <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-          <strong class="text-amber-400 block mb-1">Deploy on Vercel:</strong>
+      <div class="space-y-2.5 text-xs text-slate-700 font-medium leading-relaxed">
+        <p>This application is 100% self-contained in a <strong>single static HTML file</strong> with zero external build tools required.</p>
+        <div class="p-3 bg-white/80 rounded-2xl border border-slate-200">
+          <strong class="text-rose-500 block mb-0.5">Deploy on Vercel:</strong>
           <span>Push to GitHub, import repository on vercel.com, and deploy instantly!</span>
         </div>
-        <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-          <strong class="text-emerald-400 block mb-1">Deploy on GitHub Pages:</strong>
+        <div class="p-3 bg-white/80 rounded-2xl border border-slate-200">
+          <strong class="text-emerald-600 block mb-0.5">Deploy on GitHub Pages:</strong>
           <span>Go to Repository Settings → Pages → Deploy from branch <code>main</code> / <code>root</code>.</span>
         </div>
       </div>
-      <button onclick="closeModal('deployModal')" class="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-700 font-bold rounded-xl text-xs text-white transition">
+      <button onclick="closeModal('deployModal')" class="mt-5 w-full py-2.5 bg-slate-900 hover:bg-slate-800 font-extrabold rounded-xl text-xs text-white transition">
         Close
       </button>
     </div>
   </div>
 
-  <!-- ================= WEB AUDIO SYNTHESIZER ================= -->
+  <!-- ================= WEB AUDIO SFX & PROCEDURAL BGM SYNTHESIZER ================= -->
   <script>
     class SoundEngine {
       constructor() {
         this.ctx = null;
         this.muted = false;
+        this.bgmPlaying = false;
+        this.bgmTimer = null;
+        this.bgmStep = 0;
       }
 
       init() {
@@ -546,6 +701,72 @@
         }
       }
 
+      // Pleasant, light tropical/marimba ambient chord progression loop
+      toggleBGM() {
+        this.init();
+        if (this.bgmPlaying) {
+          this.stopBGM();
+        } else {
+          this.startBGM();
+        }
+        return this.bgmPlaying;
+      }
+
+      startBGM() {
+        if (!this.ctx || this.bgmPlaying) return;
+        this.bgmPlaying = true;
+        // Upbeat major pentatonic arpeggio notes (C5, D5, E5, G5, A5, C6)
+        const melody = [
+          523.25, 659.25, 783.99, 659.25,
+          587.33, 783.99, 880.00, 783.99,
+          523.25, 659.25, 1046.50, 880.00,
+          783.99, 659.25, 587.33, 659.25
+        ];
+        const bass = [261.63, 220.00, 174.61, 196.00];
+
+        this.bgmTimer = setInterval(() => {
+          if (!this.bgmPlaying || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          const noteFreq = melody[this.bgmStep % melody.length];
+
+          // Soft marimba pluck
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(noteFreq, now);
+          gain.gain.setValueAtTime(0.032, now);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.24);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+          // Warm bass root note every 4 steps
+          if (this.bgmStep % 4 === 0) {
+            const bOsc = this.ctx.createOscillator();
+            const bGain = this.ctx.createGain();
+            bOsc.type = 'triangle';
+            bOsc.frequency.setValueAtTime(bass[Math.floor(this.bgmStep / 4) % bass.length], now);
+            bGain.gain.setValueAtTime(0.028, now);
+            bGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.85);
+            bOsc.connect(bGain);
+            bGain.connect(this.ctx.destination);
+            bOsc.start(now);
+            bOsc.stop(now + 0.88);
+          }
+
+          this.bgmStep++;
+        }, 260);
+      }
+
+      stopBGM() {
+        this.bgmPlaying = false;
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+
       playDiceShake() {
         if (this.muted) return;
         this.init();
@@ -555,8 +776,8 @@
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(180 + Math.random() * 220, now + i * 0.04);
-          gain.gain.setValueAtTime(0.11, now + i * 0.04);
+          osc.frequency.setValueAtTime(220 + Math.random() * 250, now + i * 0.04);
+          gain.gain.setValueAtTime(0.09, now + i * 0.04);
           gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.035);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -572,14 +793,14 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(380, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(640, this.ctx.currentTime + 0.07);
-        gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
+        osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(680, this.ctx.currentTime + 0.065);
+        gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.065);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.08);
+        osc.stop(this.ctx.currentTime + 0.07);
       }
 
       playCapture() {
@@ -589,14 +810,14 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(680, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.28);
-        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.28);
+        osc.frequency.setValueAtTime(720, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(130, this.ctx.currentTime + 0.26);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.26);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.29);
+        osc.stop(this.ctx.currentTime + 0.27);
       }
 
       playBonus() {
@@ -609,12 +830,29 @@
         osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
         osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08);
         osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.16);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.26);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.27);
+      }
+
+      playChatPing() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1174.66, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
       }
 
       playVictory() {
@@ -627,7 +865,7 @@
           const gain = this.ctx.createGain();
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.12);
-          gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.12);
+          gain.gain.setValueAtTime(0.22, this.ctx.currentTime + idx * 0.12);
           gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.12 + 0.35);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -642,67 +880,52 @@
     function toggleAudio() {
       sound.muted = !sound.muted;
       document.getElementById('soundIcon').innerText = sound.muted ? '🔇' : '🔊';
+      showToast(sound.muted ? 'Sound effects muted' : 'Sound effects enabled');
+    }
+
+    function toggleBGM() {
+      const playing = sound.toggleBGM();
+      const btn = document.getElementById('bgmBtn');
+      const label = document.getElementById('bgmLabel');
+      if (playing) {
+        btn.classList.add('ring-2', 'ring-rose-400', 'bg-rose-50');
+        if (label) label.innerText = 'BGM On';
+        showToast('🎵 Ambient Lo-Fi Marimba BGM started');
+      } else {
+        btn.classList.remove('ring-2', 'ring-rose-400', 'bg-rose-50');
+        if (label) label.innerText = 'BGM Off';
+        showToast('🎵 Background music paused');
+      }
     }
 
     function showToast(msg) {
       const banner = document.getElementById('toastBanner');
-      if (!banner) return;
-      banner.innerText = msg;
+      const textEl = document.getElementById('toastText');
+      if (!banner || !textEl) return;
+      textEl.innerText = msg;
       banner.classList.remove('hidden');
       clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => banner.classList.add('hidden'), 3200);
+      window.__toastTimer = setTimeout(() => banner.classList.add('hidden'), 3000);
     }
   </script>
 
-  <!-- ================= LUDO GAME ENGINE & MULTIPLAYER ================= -->
+  <!-- ================= LUDO GAME ENGINE, PARTICLES & CHAT ================= -->
   <script>
-    /*
-      AUTHENTIC 15x15 CLOCKWISE LUDO GEOMETRY:
-      - Corner 6x6 Yards:
-        * Green  (Top-Left):     rows 0..5,  cols 0..5
-        * Yellow (Top-Right):    rows 0..5,  cols 9..14
-        * Red    (Bottom-Left):  rows 9..14, cols 0..5
-        * Blue   (Bottom-Right): rows 9..14, cols 9..14
-      - Clockwise 52-Tile Perimeter Track (indices 0..51):
-        * Red starts at index 0     -> [13, 6] (moves UP bottom-left column)
-        * Green starts at index 13  -> [6, 1]  (moves RIGHT top-left row)
-        * Yellow starts at index 26 -> [1, 8]  (moves DOWN top-right column)
-        * Blue starts at index 39   -> [8, 13] (moves LEFT bottom-right row)
-      - Home Runways (steps 51..55) & Home Triangles (step 56):
-        * Red:    [13,7] -> [9,7]  into Bottom Triangle
-        * Green:  [7,1]  -> [7,5]  into Left Triangle
-        * Yellow: [1,7]  -> [5,7]  into Top Triangle
-        * Blue:   [7,13] -> [7,9]  into Right Triangle
-    */
-
     const TRACK_COORDS = [
-      // 0..4: Bottom arm left column going UP (Red starts at 0: [13,6])
       [13,6], [12,6], [11,6], [10,6], [9,6],
-      // 5..10: Left arm bottom row going LEFT
       [8,5], [8,4], [8,3], [8,2], [8,1], [8,0],
-      // 11..12: Left arm turn going UP
       [7,0], [6,0],
-      // 13..17: Left arm top row going RIGHT (Green starts at 13: [6,1])
       [6,1], [6,2], [6,3], [6,4], [6,5],
-      // 18..23: Top arm left column going UP
       [5,6], [4,6], [3,6], [2,6], [1,6], [0,6],
-      // 24..25: Top arm turn going RIGHT
       [0,7], [0,8],
-      // 26..30: Top arm right column going DOWN (Yellow starts at 26: [1,8])
       [1,8], [2,8], [3,8], [4,8], [5,8],
-      // 31..36: Right arm top row going RIGHT
       [6,9], [6,10], [6,11], [6,12], [6,13], [6,14],
-      // 37..38: Right arm turn going DOWN
       [7,14], [8,14],
-      // 39..43: Right arm bottom row going LEFT (Blue starts at 39: [8,13])
       [8,13], [8,12], [8,11], [8,10], [8,9],
-      // 44..49: Bottom arm right column going DOWN
       [9,8], [10,8], [11,8], [12,8], [13,8], [14,8],
-      // 50..51: Bottom arm turn going LEFT
       [14,7], [14,6]
     ];
 
-    // 8 Authentic Safe Star Squares (4 colored starts + 4 star squares)
     const SAFE_SQUARES = [0, 8, 13, 21, 26, 34, 39, 47];
 
     const COLOR_START_OFFSET = {
@@ -719,8 +942,6 @@
       blue:   [[7,13], [7,12], [7,11], [7,10], [7,9]]
     };
 
-    // Exact cell-unit coordinates (0..15) for the 4 slots in each 6x6 corner yard
-    // Using 1.85 and 4.15 inside each 6x6 box so slots and tokens align 100% identically
     const YARD_SLOTS = {
       green:  [[1.85, 1.85], [1.85, 4.15], [4.15, 1.85], [4.15, 4.15]],
       yellow: [[1.85, 10.85], [1.85, 13.15], [4.15, 10.85], [4.15, 13.15]],
@@ -728,7 +949,6 @@
       blue:   [[10.85, 10.85], [10.85, 13.15], [13.15, 10.85], [13.15, 13.15]]
     };
 
-    // Home finish positions inside each colored triangle of the 3x3 center (rows 6..9, cols 6..9)
     const HOME_FINISH_COORDS = {
       red:    [[8.35, 7.15], [8.35, 7.85], [8.65, 7.35], [8.65, 7.65]],
       green:  [[7.15, 6.65], [7.85, 6.65], [7.35, 6.35], [7.65, 6.35]],
@@ -738,14 +958,14 @@
 
     const COLORS = ['red', 'green', 'yellow', 'blue'];
     const COLOR_META = {
-      red:    { label: 'Red',    hex: '#e53935', start: 0,  arrow: '↑' },
-      green:  { label: 'Green',  hex: '#43a047', start: 13, arrow: '→' },
-      yellow: { label: 'Yellow', hex: '#fbc02d', start: 26, arrow: '↓' },
-      blue:   { label: 'Blue',   hex: '#1e88e5', start: 39, arrow: '←' }
+      red:    { label: 'Red',    hex: '#f43f5e', start: 0,  arrow: '↑', badgeBg: 'bg-rose-100 text-rose-700 border-rose-200' },
+      green:  { label: 'Green',  hex: '#10b981', start: 13, arrow: '→', badgeBg: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+      yellow: { label: 'Yellow', hex: '#f59e0b', start: 26, arrow: '↓', badgeBg: 'bg-amber-100 text-amber-800 border-amber-200' },
+      blue:   { label: 'Blue',   hex: '#3b82f6', start: 39, arrow: '←', badgeBg: 'bg-sky-100 text-sky-700 border-sky-200' }
     };
 
     let myRole = 'red';
-    let gameMode = 'local'; // 'local' or 'online'
+    let gameMode = 'local';
     let currentRoomCode = '';
     let peer = null;
     let peerConn = null;
@@ -753,6 +973,14 @@
     let isHost = false;
     let isAnimatingMove = false;
     let botTimeout = null;
+
+    // Turn countdown bar
+    let turnTimerInterval = null;
+    let turnTimeRemaining = 100;
+
+    // Chat state
+    let chatMessages = [];
+    let unreadChatCount = 0;
 
     function freshTokens() {
       return {
@@ -789,8 +1017,9 @@
       checkUrlParams();
       updateLobbyUI();
 
-      // Keyboard spacebar support to roll dice
       window.addEventListener('keydown', (e) => {
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
         if (e.code === 'Space' && gameState.status === 'playing' && !gameState.diceRolled) {
           e.preventDefault();
           onDiceClick();
@@ -803,16 +1032,16 @@
       const roomParam = params.get('room');
       if (roomParam) {
         document.getElementById('joinCodeInput').value = roomParam.trim().toUpperCase();
-        setStatusBadge('Invite code loaded! Click Join Room', 'text-amber-400');
+        setStatusBadge('Invite code loaded! Click Join Room', 'text-amber-600');
       }
     }
 
-    function setStatusBadge(text, colorClass = 'text-emerald-400') {
+    function setStatusBadge(text, colorClass = 'text-emerald-600') {
       const statusText = document.getElementById('statusText');
       const dot = document.getElementById('statusDot');
       if (!statusText || !dot) return;
       statusText.innerText = text;
-      statusText.className = colorClass;
+      statusText.className = `${colorClass} font-bold`;
       dot.className = `w-2 h-2 rounded-full inline-block ${colorClass.replace('text-', 'bg-')}`;
     }
 
@@ -823,7 +1052,6 @@
 
       for (let r = 0; r < 15; r++) {
         for (let c = 0; c < 15; c++) {
-          // Skip cells covered by the four 6x6 corner yards and the 3x3 center home
           const inGreenYard  = (r < 6 && c < 6);
           const inYellowYard = (r < 6 && c >= 9);
           const inRedYard    = (r >= 9 && c < 6);
@@ -835,50 +1063,40 @@
           }
 
           const cell = document.createElement('div');
-          // Explicit 1-based CSS Grid coordinates so multi-cell yards never scramble the track
           cell.style.gridRow = `${r + 1} / ${r + 2}`;
           cell.style.gridColumn = `${c + 1} / ${c + 2}`;
           cell.dataset.row = r;
           cell.dataset.col = c;
-          cell.className = 'relative flex items-center justify-center text-[10px] sm:text-xs font-black border border-slate-300/80 bg-white text-slate-800 select-none';
+          cell.className = 'relative flex items-center justify-center text-[10px] sm:text-xs font-black border border-slate-200/90 bg-white text-slate-700 select-none transition-colors';
 
-          // Home Runways
+          // Glossy Home Runways
           if (c === 7 && r >= 9 && r <= 13) {
-            cell.classList.replace('bg-white', 'bg-red-500');
-            cell.classList.add('text-white');
+            cell.className = 'relative flex items-center justify-center border border-rose-300/80 bg-gradient-to-b from-rose-400 to-rose-500 text-white shadow-inner';
           } else if (r === 7 && c >= 1 && c <= 5) {
-            cell.classList.replace('bg-white', 'bg-green-500');
-            cell.classList.add('text-white');
+            cell.className = 'relative flex items-center justify-center border border-emerald-300/80 bg-gradient-to-r from-emerald-400 to-emerald-500 text-white shadow-inner';
           } else if (c === 7 && r >= 1 && r <= 5) {
-            cell.classList.replace('bg-white', 'bg-yellow-400');
-            cell.classList.add('text-slate-950');
+            cell.className = 'relative flex items-center justify-center border border-amber-300/80 bg-gradient-to-b from-amber-300 to-amber-400 text-slate-900 shadow-inner';
           } else if (r === 7 && c >= 9 && c <= 13) {
-            cell.classList.replace('bg-white', 'bg-blue-500');
-            cell.classList.add('text-white');
+            cell.className = 'relative flex items-center justify-center border border-sky-300/80 bg-gradient-to-l from-sky-400 to-blue-500 text-white shadow-inner';
           }
 
           // Colored Start Squares (also Safe Star Squares)
           if (r === 13 && c === 6) {
-            cell.classList.replace('bg-white', 'bg-red-600');
-            cell.classList.add('text-white');
-            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+            cell.className = 'relative flex flex-col items-center justify-center border border-rose-400 bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-sm';
+            cell.innerHTML = '<span class="text-[11px] sm:text-xs leading-none drop-shadow">★</span><span class="text-[8px] leading-none font-black opacity-90">↑</span>';
           } else if (r === 6 && c === 1) {
-            cell.classList.replace('bg-white', 'bg-green-600');
-            cell.classList.add('text-white');
-            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+            cell.className = 'relative flex flex-col items-center justify-center border border-emerald-400 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm';
+            cell.innerHTML = '<span class="text-[11px] sm:text-xs leading-none drop-shadow">★</span><span class="text-[8px] leading-none font-black opacity-90">→</span>';
           } else if (r === 1 && c === 8) {
-            cell.classList.replace('bg-white', 'bg-yellow-400');
-            cell.classList.add('text-slate-950');
-            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+            cell.className = 'relative flex flex-col items-center justify-center border border-amber-400 bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950 shadow-sm';
+            cell.innerHTML = '<span class="text-[11px] sm:text-xs leading-none drop-shadow">★</span><span class="text-[8px] leading-none font-black opacity-90">↓</span>';
           } else if (r === 8 && c === 13) {
-            cell.classList.replace('bg-white', 'bg-blue-600');
-            cell.classList.add('text-white');
-            cell.innerHTML = '<span class="text-xs sm:text-sm leading-none drop-shadow">★</span>';
+            cell.className = 'relative flex flex-col items-center justify-center border border-sky-400 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-sm';
+            cell.innerHTML = '<span class="text-[11px] sm:text-xs leading-none drop-shadow">★</span><span class="text-[8px] leading-none font-black opacity-90">←</span>';
           } else {
-            // Other 4 Neutral Star Safe Squares
             const idx = getTrackIndexFromCoord(r, c);
             if (SAFE_SQUARES.includes(idx)) {
-              cell.classList.add('bg-amber-50');
+              cell.classList.replace('bg-white', 'bg-amber-50/90');
               cell.innerHTML = '<span class="text-amber-500 text-xs sm:text-sm leading-none drop-shadow-sm">★</span>';
             }
           }
@@ -894,23 +1112,20 @@
     function injectCornerYards() {
       const board = document.getElementById('boardGrid');
       const yardConfigs = [
-        { color: 'green',  area: '1 / 1 / 7 / 7',     bg: 'bg-green-600',  ring: 'border-green-500/40 bg-green-50' },
-        { color: 'yellow', area: '1 / 10 / 7 / 16',   bg: 'bg-yellow-400', ring: 'border-yellow-500/40 bg-yellow-50' },
-        { color: 'red',    area: '10 / 1 / 16 / 7',   bg: 'bg-red-600',    ring: 'border-red-500/40 bg-red-50' },
-        { color: 'blue',   area: '10 / 10 / 16 / 16', bg: 'bg-blue-600',   ring: 'border-blue-500/40 bg-blue-50' }
+        { color: 'green',  area: '1 / 1 / 7 / 7',     bg: 'bg-gradient-to-br from-emerald-400 to-emerald-600', ring: 'border-emerald-300 bg-emerald-50/90' },
+        { color: 'yellow', area: '1 / 10 / 7 / 16',   bg: 'bg-gradient-to-bl from-amber-300 to-amber-500',     ring: 'border-amber-300 bg-amber-50/90' },
+        { color: 'red',    area: '10 / 1 / 16 / 7',   bg: 'bg-gradient-to-tr from-rose-500 to-rose-600',       ring: 'border-rose-300 bg-rose-50/90' },
+        { color: 'blue',   area: '10 / 10 / 16 / 16', bg: 'bg-gradient-to-tl from-sky-500 to-blue-600',        ring: 'border-sky-300 bg-sky-50/90' }
       ];
 
       yardConfigs.forEach(({ color, area, bg, ring }) => {
         const yard = document.createElement('div');
         yard.style.gridArea = area;
-        yard.className = `${bg} p-[14%] relative border border-slate-400/60 select-none`;
+        yard.className = `${bg} p-[14%] relative border border-slate-300/80 select-none`;
 
         const innerWhite = document.createElement('div');
-        innerWhite.className = 'w-full h-full bg-white rounded-2xl shadow-inner relative';
+        innerWhite.className = 'w-full h-full bg-white/95 rounded-3xl shadow-inner relative border border-white';
         yard.appendChild(innerWhite);
-
-        // Place visual circles at the exact same board percentages as YARD_SLOTS
-        // Instead of guessing with padding, we mount the 4 circles inside #boardGrid's coordinate space
         board.appendChild(yard);
 
         YARD_SLOTS[color].forEach(([rCoord, cCoord]) => {
@@ -931,19 +1146,192 @@
       const board = document.getElementById('boardGrid');
       const center = document.createElement('div');
       center.style.gridArea = '7 / 7 / 10 / 10';
-      center.className = 'relative w-full h-full bg-white overflow-hidden border border-slate-400 flex items-center justify-center z-10 pointer-events-none';
+      center.className = 'relative w-full h-full bg-white overflow-hidden border border-slate-300 flex items-center justify-center z-10 pointer-events-none shadow-inner';
       center.innerHTML = `
         <div class="absolute inset-0 tri-yellow"></div>
         <div class="absolute inset-0 tri-blue"></div>
         <div class="absolute inset-0 tri-red"></div>
         <div class="absolute inset-0 tri-green"></div>
-        <div class="relative z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 shadow-md border border-slate-300 flex items-center justify-center text-sm sm:text-base">🏆</div>
+        <div class="relative z-20 w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-white/95 shadow-lg border-2 border-amber-200 flex items-center justify-center text-sm sm:text-base">🏆</div>
       `;
       board.appendChild(center);
     }
 
     function getTrackIndexFromCoord(r, c) {
       return TRACK_COORDS.findIndex(x => x[0] === r && x[1] === c);
+    }
+
+    // ---------------- PARTICLE BURST EFFECT ----------------
+    function spawnBoardParticles(rCenter, cCenter, hexColor) {
+      const layer = document.getElementById('particleLayer');
+      if (!layer) return;
+      const topPct = (rCenter / 15) * 100;
+      const leftPct = (cCenter / 15) * 100;
+
+      for (let i = 0; i < 14; i++) {
+        const p = document.createElement('div');
+        p.className = 'board-particle';
+        const angle = (Math.PI * 2 * i) / 14;
+        const dist = 24 + Math.random() * 28;
+        const tx = Math.cos(angle) * dist + 'px';
+        const ty = Math.sin(angle) * dist + 'px';
+        p.style.top = `${topPct}%`;
+        p.style.left = `${leftPct}%`;
+        p.style.backgroundColor = i % 2 === 0 ? hexColor : '#fbbf24';
+        p.style.setProperty('--tx', tx);
+        p.style.setProperty('--ty', ty);
+        layer.appendChild(p);
+        setTimeout(() => p.remove(), 700);
+      }
+    }
+
+    // ---------------- TURN TIMER PROGRESS BAR ----------------
+    function resetTurnTimerBar() {
+      clearInterval(turnTimerInterval);
+      turnTimeRemaining = 100;
+      const bar = document.getElementById('turnTimerBar');
+      if (bar) bar.style.width = '100%';
+
+      if (gameState.status !== 'playing') return;
+      turnTimerInterval = setInterval(() => {
+        if (gameState.status !== 'playing' || isAnimatingMove) return;
+        turnTimeRemaining = Math.max(0, turnTimeRemaining - 1.25);
+        if (bar) bar.style.width = `${turnTimeRemaining}%`;
+      }, 200);
+    }
+
+    // ---------------- LIVE CHAT SYSTEM (P2P + AI BANTER) ----------------
+    function toggleChatDrawer() {
+      const drawer = document.getElementById('chatDrawer');
+      const isClosed = drawer.classList.contains('translate-x-full');
+      if (isClosed) {
+        drawer.classList.remove('translate-x-full');
+        unreadChatCount = 0;
+        updateUnreadBadge();
+      } else {
+        drawer.classList.add('translate-x-full');
+      }
+    }
+
+    function updateUnreadBadge() {
+      const badge = document.getElementById('chatUnreadBadge');
+      if (!badge) return;
+      if (unreadChatCount > 0) {
+        badge.innerText = unreadChatCount > 9 ? '9+' : unreadChatCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function getMySenderInfo() {
+      const color = (gameMode === 'online' && myRole) ? myRole : gameState.turn || 'red';
+      const name = gameState.players[color]?.name || document.getElementById('playerNameInput').value.trim() || 'Player';
+      return { name, color };
+    }
+
+    function submitMiniChat(e) {
+      e.preventDefault();
+      const input = document.getElementById('miniChatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      dispatchChatMessage(text);
+    }
+
+    function submitDrawerChat(e) {
+      e.preventDefault();
+      const input = document.getElementById('drawerChatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      dispatchChatMessage(text);
+    }
+
+    function sendQuickChat(phrase) {
+      dispatchChatMessage(phrase);
+    }
+
+    function dispatchChatMessage(text, customSender = null) {
+      const sender = customSender || getMySenderInfo();
+      const msgObj = {
+        id: Date.now() + Math.random(),
+        sender: sender.name,
+        color: sender.color,
+        text: String(text).slice(0, 120),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      appendChatMessage(msgObj, true);
+
+      if (gameMode === 'online') {
+        if (isHost) {
+          broadcast({ type: 'CHAT_MSG', msgObj });
+        } else if (peerConn?.open) {
+          peerConn.send({ type: 'CHAT_MSG', msgObj });
+        }
+      }
+    }
+
+    function appendChatMessage(msgObj, isLocal = false) {
+      chatMessages.push(msgObj);
+      if (chatMessages.length > 50) chatMessages.shift();
+
+      if (!isLocal) {
+        sound.playChatPing();
+        const drawer = document.getElementById('chatDrawer');
+        if (drawer && drawer.classList.contains('translate-x-full')) {
+          unreadChatCount++;
+          updateUnreadBadge();
+        }
+      }
+
+      renderChatContainers();
+      showFloatingChatBubble(msgObj);
+    }
+
+    function renderChatContainers() {
+      const mini = document.getElementById('miniChatMessages');
+      const drawer = document.getElementById('drawerChatMessages');
+
+      const htmlList = chatMessages.map(m => {
+        const meta = COLOR_META[m.color] || COLOR_META.red;
+        return `
+          <div class="p-2 rounded-2xl bg-white/85 border border-slate-100 shadow-sm flex flex-col gap-0.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${meta.badgeBg}">${escapeHtml(m.sender)}</span>
+              <span class="text-[9px] text-slate-400 font-semibold">${m.time}</span>
+            </div>
+            <div class="text-xs font-semibold text-slate-700 pl-1 break-words">${escapeHtml(m.text)}</div>
+          </div>
+        `;
+      }).join('');
+
+      if (mini) {
+        mini.innerHTML = htmlList || '<div class="text-[11px] text-slate-400 italic text-center py-4">Say hello or tap a quick phrase! 👋</div>';
+        mini.scrollTop = mini.scrollHeight;
+      }
+      if (drawer) {
+        drawer.innerHTML = htmlList || '<div class="text-xs text-slate-400 italic text-center py-8">No messages yet. Start the conversation! 💬</div>';
+        drawer.scrollTop = drawer.scrollHeight;
+      }
+    }
+
+    function showFloatingChatBubble(msgObj) {
+      const container = document.getElementById('emojiFloatContainer');
+      if (!container) return;
+      const bubble = document.createElement('div');
+      const meta = COLOR_META[msgObj.color] || COLOR_META.red;
+      bubble.className = 'px-3.5 py-1.5 rounded-2xl glass-panel border-2 border-white shadow-xl text-xs font-extrabold text-slate-800 flex items-center gap-1.5 animate-bounce';
+      bubble.innerHTML = `<span class="w-2.5 h-2.5 rounded-full" style="background:${meta.hex}"></span><span>${escapeHtml(msgObj.sender)}:</span><span class="text-rose-600">${escapeHtml(msgObj.text)}</span>`;
+      container.appendChild(bubble);
+      setTimeout(() => bubble.remove(), 2400);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
     }
 
     // ---------------- LOCAL & AI MODES ----------------
@@ -995,12 +1383,12 @@
         }
       }
 
-      // Set initial turn to first active seat
       const firstActive = COLORS.find(c => gameState.players[c].connected) || 'red';
       gameState.turn = firstActive;
 
-      setStatusBadge('Local Match Active', 'text-emerald-400');
+      setStatusBadge('Local Match Active', 'text-emerald-600');
       launchGameView();
+      resetTurnTimerBar();
       renderGameUI();
       maybeTriggerBotTurn();
     }
@@ -1052,7 +1440,6 @@
       const anyBots = COLORS.some(c => c !== 'red' && gameState.players[c].isBot);
       COLORS.forEach(c => {
         if (c === 'red') return;
-        // Only modify seats not taken by a live remote peer
         const peerTaken = Object.values(hostConnections).some(x => x.color === c);
         if (!peerTaken) {
           if (!anyBots) {
@@ -1067,7 +1454,7 @@
     }
 
     function initPeer(customId, hostFlag) {
-      setStatusBadge('Connecting to PeerJS Server...', 'text-amber-400');
+      setStatusBadge('Connecting to PeerJS...', 'text-amber-600');
       const peerOptions = {
         debug: 1,
         config: {
@@ -1085,7 +1472,7 @@
 
       peer.on('open', () => {
         if (hostFlag) {
-          setStatusBadge('Room Ready — Share Code!', 'text-emerald-400');
+          setStatusBadge('Room Ready — Share Code!', 'text-emerald-600');
           showLobbyView();
         } else {
           connectToHost(`LUDO_ROYALE_${currentRoomCode}`);
@@ -1112,14 +1499,14 @@
           showToast('Room code conflict — generating a new room code...');
           setTimeout(createRoom, 500);
         } else {
-          showToast(`Network error: ${err.type}`);
+          showToast(`Network notice: ${err.type}`);
         }
-        setStatusBadge('Connection Issue', 'text-rose-400');
+        setStatusBadge('Connection Notice', 'text-rose-500');
       });
     }
 
     function connectToHost(hostPeerId) {
-      setStatusBadge('Joining host room...', 'text-amber-400');
+      setStatusBadge('Joining host room...', 'text-amber-600');
       peerConn = peer.connect(hostPeerId, { reliable: true });
       peerConn.on('open', () => {
         peerConn.send({
@@ -1129,8 +1516,8 @@
       });
       peerConn.on('data', handleIncomingNetworkData);
       peerConn.on('close', () => {
-        setStatusBadge('Host disconnected', 'text-rose-400');
-        showNotification('Host left the match.', 'text-rose-400');
+        setStatusBadge('Host disconnected', 'text-rose-500');
+        showNotification('Host left the match.', 'text-rose-600');
       });
     }
 
@@ -1167,7 +1554,8 @@
         conn.send({ type: 'ASSIGN_COLOR', color, gameState });
         broadcastState();
         updateLobbyUI();
-        setStatusBadge(`${gameState.players[color].name} joined as ${COLOR_META[color].label}`, 'text-emerald-400');
+        setStatusBadge(`${gameState.players[color].name} joined as ${COLOR_META[color].label}`, 'text-emerald-600');
+        dispatchChatMessage(`Joined the room as ${COLOR_META[color].label}! 👋`, { name: gameState.players[color].name, color });
         return;
       }
 
@@ -1191,6 +1579,12 @@
         return;
       }
 
+      if (msg.type === 'CHAT_MSG' && msg.msgObj) {
+        appendChatMessage(msg.msgObj, false);
+        broadcast({ type: 'CHAT_MSG', msgObj: msg.msgObj });
+        return;
+      }
+
       if (msg.type === 'REQUEST_RESTART') {
         if (isHost && gameState.status === 'ended') restartMatch();
       }
@@ -1208,7 +1602,7 @@
       if (msg.type === 'ASSIGN_COLOR') {
         myRole = msg.color;
         gameState = msg.gameState;
-        setStatusBadge(`Connected as ${COLOR_META[myRole].label}`, 'text-emerald-400');
+        setStatusBadge(`Connected as ${COLOR_META[myRole].label}`, 'text-emerald-600');
         if (gameState.status === 'playing') launchGameView();
         else showLobbyView();
         renderGameUI();
@@ -1232,6 +1626,13 @@
 
       if (msg.type === 'EMOJI_REACTION') {
         triggerEmojiAnimation(msg.emoji);
+        return;
+      }
+
+      if (msg.type === 'CHAT_MSG' && msg.msgObj) {
+        if (!chatMessages.some(x => x.id === msg.msgObj.id)) {
+          appendChatMessage(msg.msgObj, false);
+        }
         return;
       }
 
@@ -1266,6 +1667,7 @@
       gameState.consecutiveSixes = 0;
       broadcastState();
       launchGameView();
+      resetTurnTimerBar();
       renderGameUI();
       maybeTriggerBotTurn();
     }
@@ -1292,8 +1694,8 @@
         nameEl.innerText = p.connected ? p.name : 'Waiting...';
         statusEl.innerText = p.connected ? (p.isBot ? 'Bot Ready' : 'Ready') : 'Open';
         statusEl.className = p.connected
-          ? 'text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold'
-          : 'text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-bold';
+          ? 'text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-extrabold'
+          : 'text-[10px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold';
       });
 
       const startBtn = document.getElementById('startOnlineBtn');
@@ -1318,6 +1720,7 @@
 
     function exitToHome() {
       clearTimeout(botTimeout);
+      clearInterval(turnTimerInterval);
       if (peer) {
         peer.destroy();
         peer = null;
@@ -1336,7 +1739,7 @@
       document.getElementById('lobbyView').classList.add('hidden');
       document.getElementById('leaveRoomBtn').classList.add('hidden');
       document.getElementById('homeView').classList.remove('hidden');
-      setStatusBadge('Ready to Play', 'text-emerald-400');
+      setStatusBadge('Ready to Play', 'text-emerald-600');
       updateLobbyUI();
     }
 
@@ -1368,7 +1771,7 @@
     function maybeTriggerBotTurn() {
       clearTimeout(botTimeout);
       if (gameState.status !== 'playing' || isAnimatingMove) return;
-      if (gameMode === 'online' && !isHost) return; // Host drives bots in online matches
+      if (gameMode === 'online' && !isHost) return;
 
       const currentColor = gameState.turn;
       const player = gameState.players[currentColor];
@@ -1383,8 +1786,6 @@
     }
 
     function chooseBestBotMove(color, legalIndices, dice) {
-      // Smart heuristic for AI Bot:
-      // Prioritize: 1) Reaching Home (56), 2) Capturing an opponent, 3) Exiting yard on a 6, 4) Landing on a Safe Star, 5) Advancing furthest pawn
       let bestIdx = legalIndices[0];
       let bestScore = -9999;
 
@@ -1400,7 +1801,6 @@
         if (abs !== null) {
           if (SAFE_SQUARES.includes(abs)) score += 90;
           else {
-            // Check if this lands on an opponent pawn to capture it
             COLORS.filter(c => c !== color).forEach(opp => {
               gameState.tokens[opp].forEach(oppStep => {
                 if (getAbsoluteTrackIndex(opp, oppStep) === abs) {
@@ -1450,7 +1850,7 @@
         if (gameState.consecutiveSixes >= 3) {
           gameState.consecutiveSixes = 0;
           gameState.diceRolled = false;
-          showNotification(`Three 6s in a row! Roll forfeited — passing turn.`, 'text-rose-400');
+          showNotification(`Three 6s in a row! Roll forfeited — passing turn.`, 'text-rose-600');
           renderGameUI();
           if (gameMode === 'online' && isHost) broadcastState();
           setTimeout(switchTurn, 900);
@@ -1463,7 +1863,7 @@
           .filter(x => x !== null);
 
         if (legal.length === 0) {
-          showNotification(`${COLOR_META[color].label} rolled ${value} — no legal moves available.`, 'text-slate-400');
+          showNotification(`${COLOR_META[color].label} rolled ${value} — no legal moves available.`, 'text-slate-500');
           renderGameUI();
           if (gameMode === 'online' && isHost) broadcastState();
           setTimeout(switchTurn, 850);
@@ -1473,16 +1873,15 @@
         renderGameUI();
         if (gameMode === 'online' && isHost) broadcastState();
 
-        // Auto-move if only 1 legal move OR if it's a Bot's turn
         if (isCurrentTurnBot()) {
           const chosen = chooseBestBotMove(color, legal, value);
-          showNotification(`${gameState.players[color].name} rolled ${value} and is moving...`, 'text-amber-300');
+          showNotification(`${gameState.players[color].name} rolled ${value} and is moving...`, 'text-amber-600');
           setTimeout(() => processMove(color, chosen), 420);
         } else if (legal.length === 1) {
-          showNotification(`Rolled ${value} — auto-moving only playable pawn!`, 'text-emerald-400');
+          showNotification(`Rolled ${value} — auto-moving only playable pawn!`, 'text-emerald-600');
           setTimeout(() => processMove(color, legal[0]), 320);
         } else {
-          showNotification(`Rolled ${value}! Click a glowing ${COLOR_META[color].label} pawn to move.`, 'text-amber-400');
+          showNotification(`Rolled ${value}! Tap a glowing ${COLOR_META[color].label} pawn to move.`, 'text-rose-600');
         }
       });
     }
@@ -1557,8 +1956,8 @@
       if (!isValidMove(startStep, dice)) return;
 
       isAnimatingMove = true;
+      document.getElementById('previewLayer').innerHTML = '';
 
-      // Step-by-step hop animation
       const targetStep = (startStep === -1) ? 0 : startStep + dice;
       const stepsToAnimate = [];
       if (startStep === -1) {
@@ -1580,24 +1979,26 @@
           clearInterval(stepInterval);
           finalizeMove(color, tokenIdx, startStep, targetStep, dice);
         }
-      }, 115);
+      }, 110);
     }
 
     function finalizeMove(color, tokenIdx, startStep, newStep, dice) {
       isAnimatingMove = false;
       let bonus = (dice === 6);
+      const [rDest, cDest] = getTokenBaseCoordinates(color, newStep, tokenIdx);
 
       if (startStep === -1) {
-        showNotification(`${COLOR_META[color].label} brought a pawn out onto the track!`, 'text-emerald-400');
+        spawnBoardParticles(rDest, cDest, COLOR_META[color].hex);
+        showNotification(`${COLOR_META[color].label} deployed a pawn onto the track! ✨`, 'text-emerald-600');
       }
 
       if (newStep === 56) {
         bonus = true;
         sound.playBonus();
-        showNotification(`${COLOR_META[color].label} pawn reached HOME! Bonus roll! 🎉`, 'text-amber-400');
+        spawnBoardParticles(rDest, cDest, '#f59e0b');
+        showNotification(`${COLOR_META[color].label} pawn reached HOME! Bonus roll! 🎉`, 'text-amber-600');
       }
 
-      // Check captures on non-safe track squares
       const abs = getAbsoluteTrackIndex(color, newStep);
       if (abs !== null && !SAFE_SQUARES.includes(abs)) {
         COLORS.filter(c => c !== color).forEach(opponent => {
@@ -1607,13 +2008,22 @@
               gameState.tokens[opponent][idx] = -1;
               bonus = true;
               sound.playCapture();
-              showNotification(`${COLOR_META[color].label} captured ${COLOR_META[opponent].label}'s pawn! Bonus roll! 💥`, 'text-rose-400');
+              spawnBoardParticles(rDest, cDest, COLOR_META[color].hex);
+              showNotification(`${COLOR_META[color].label} captured ${COLOR_META[opponent].label}'s pawn! Bonus roll! 💥`, 'text-rose-600');
+
+              // Fun AI Bot banter on capture
+              if (gameState.players[color]?.isBot) {
+                const taunts = ['Gotcha! 🎯', 'Back to base! 😎', 'Bonus roll for me! 🔥'];
+                dispatchChatMessage(taunts[Math.floor(Math.random() * taunts.length)], { name: gameState.players[color].name, color });
+              } else if (gameState.players[opponent]?.isBot) {
+                const cries = ['Hey! Not fair 😭', 'I will get you back! 👀', 'Ouch! 💥'];
+                dispatchChatMessage(cries[Math.floor(Math.random() * cries.length)], { name: gameState.players[opponent].name, color: opponent });
+              }
             }
           });
         });
       }
 
-      // Check victory condition (all 4 pawns at 56)
       if (gameState.tokens[color].every(s => s === 56)) {
         gameState.winner = color;
         gameState.status = 'ended';
@@ -1629,6 +2039,7 @@
       if (bonus) {
         gameState.diceRolled = false;
         gameState.diceValue = null;
+        resetTurnTimerBar();
         renderGameUI();
         if (gameMode === 'online' && isHost) broadcastState();
         maybeTriggerBotTurn();
@@ -1653,6 +2064,7 @@
       gameState.diceRolled = false;
       gameState.diceValue = null;
       gameState.consecutiveSixes = 0;
+      resetTurnTimerBar();
       renderGameUI();
       if (gameMode === 'online' && isHost) broadcastState();
       maybeTriggerBotTurn();
@@ -1663,11 +2075,8 @@
       return (COLOR_START_OFFSET[color] + step) % 52;
     }
 
-    // Returns cell-center coordinates [rowCenter, colCenter] in 0..15 space
     function getTokenBaseCoordinates(color, step, tokenIdx) {
-      if (step === -1) {
-        return YARD_SLOTS[color][tokenIdx];
-      }
+      if (step === -1) return YARD_SLOTS[color][tokenIdx];
       if (step >= 0 && step <= 50) {
         const [r, c] = TRACK_COORDS[getAbsoluteTrackIndex(color, step)];
         return [r + 0.5, c + 0.5];
@@ -1679,12 +2088,12 @@
       return HOME_FINISH_COORDS[color][tokenIdx];
     }
 
-    // ---------------- UI & TOKEN LAYER RENDERING ----------------
-    function showNotification(text, colorClass = 'text-slate-300') {
+    // ---------------- UI, DESTINATION PREVIEWS & TOKENS RENDERING ----------------
+    function showNotification(text, colorClass = 'text-slate-700') {
       const el = document.getElementById('gameNotification');
       if (!el) return;
       el.innerText = text;
-      el.className = `mt-2.5 text-xs font-semibold ${colorClass} text-center min-h-[1.25rem] px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800 transition-all`;
+      el.className = `mt-2.5 text-xs font-extrabold ${colorClass} text-center min-h-[1.5rem] px-4 py-1 rounded-full glass-card transition-all`;
     }
 
     function renderGameUI() {
@@ -1707,13 +2116,13 @@
         if (badge) badge.classList.toggle('hidden', !active);
 
         if (card) {
-          card.className = `flex items-center justify-between p-2 rounded-xl border transition-all ${
+          card.className = `relative flex items-center justify-between p-2.5 rounded-2xl transition-all ${
             active
-              ? color === 'red'    ? 'border-2 border-red-500 bg-red-950/50 shadow-lg shadow-red-950/50'
-              : color === 'green'  ? 'border-2 border-green-500 bg-green-950/50 shadow-lg shadow-green-950/50'
-              : color === 'yellow' ? 'border-2 border-yellow-400 bg-yellow-950/50 shadow-lg shadow-yellow-950/50'
-              : 'border-2 border-blue-500 bg-blue-950/50 shadow-lg shadow-blue-950/50'
-              : 'border-slate-800 bg-slate-900/40 opacity-65'
+              ? color === 'red'    ? 'glass-panel ring-2 ring-rose-500 bg-rose-50/90 scale-[1.02]'
+              : color === 'green'  ? 'glass-panel ring-2 ring-emerald-500 bg-emerald-50/90 scale-[1.02]'
+              : color === 'yellow' ? 'glass-panel ring-2 ring-amber-400 bg-amber-50/90 scale-[1.02]'
+              : 'glass-panel ring-2 ring-sky-500 bg-sky-50/90 scale-[1.02]'
+              : 'glass-card opacity-75'
           }`;
         }
       });
@@ -1726,6 +2135,13 @@
       badge.style.backgroundColor = meta.hex;
       badge.style.color = turn === 'yellow' ? '#0f172a' : '#ffffff';
 
+      // Match Dice Ring Glow to current turn color
+      const diceBtn = document.getElementById('diceBtn');
+      if (diceBtn) {
+        diceBtn.style.borderColor = '#ffffff';
+        diceBtn.style.boxShadow = `0 12px 28px ${meta.hex}33, 0 0 0 4px ${meta.hex}44`;
+      }
+
       const valBadge = document.getElementById('diceValueBadge');
       if (valBadge) {
         valBadge.innerText = gameState.diceValue ? `Rolled: ${gameState.diceValue}` : 'Roll Dice';
@@ -1735,19 +2151,19 @@
       const diceHelper = document.getElementById('diceHelperText');
       if (isCurrentTurnBot()) {
         diceHelper.innerText = `${turnPlayerName} is thinking...`;
-        diceHelper.className = 'text-[11px] font-semibold text-amber-300 mt-1.5 text-center';
+        diceHelper.className = 'text-[11px] font-extrabold text-amber-600 mt-1 text-center';
       } else if (myTurn) {
-        diceHelper.innerText = gameState.diceRolled ? 'Tap a glowing pawn' : 'Click Dice or Space';
-        diceHelper.className = `text-[11px] font-bold ${gameState.diceRolled ? 'text-emerald-400' : 'text-amber-400'} mt-1.5 text-center`;
+        diceHelper.innerText = gameState.diceRolled ? 'Tap a glowing pawn' : 'Tap Dice or Space';
+        diceHelper.className = `text-[11px] font-extrabold ${gameState.diceRolled ? 'text-emerald-600' : 'text-rose-500'} mt-1 text-center`;
       } else {
         diceHelper.innerText = 'Waiting for opponent...';
-        diceHelper.className = 'text-[11px] font-medium text-slate-500 mt-1.5 text-center';
+        diceHelper.className = 'text-[11px] font-bold text-slate-400 mt-1 text-center';
       }
 
       document.getElementById('turnSubText').innerText =
         gameState.status === 'ended' ? 'Match complete!' :
-        isCurrentTurnBot() ? 'AI Bot Turn' :
-        myTurn ? (gameState.diceRolled ? 'Select a highlighted pawn on the board' : 'Your turn to roll the dice') :
+        isCurrentTurnBot() ? 'Smart AI Turn' :
+        myTurn ? (gameState.diceRolled ? 'Select a highlighted pawn' : 'Your turn to roll') :
         `Waiting for ${turnPlayerName}`;
 
       const sixBadge = document.getElementById('consecutiveSixesBadge');
@@ -1759,7 +2175,37 @@
       }
 
       if (gameState.diceValue) renderDiceDots(gameState.diceValue);
+      renderDestinationPreviews();
       renderTokensLayer();
+    }
+
+    // Highlights valid destination squares when dice is rolled
+    function renderDestinationPreviews() {
+      const previewLayer = document.getElementById('previewLayer');
+      if (!previewLayer) return;
+      previewLayer.innerHTML = '';
+
+      if (!isMyTurn() || !gameState.diceRolled || !gameState.diceValue || isAnimatingMove) return;
+
+      const color = gameState.turn;
+      const dice = gameState.diceValue;
+      const seenCoords = new Set();
+
+      gameState.tokens[color].forEach((step, idx) => {
+        if (!isValidMove(step, dice)) return;
+        const nextStep = step === -1 ? 0 : step + dice;
+        const [rCenter, cCenter] = getTokenBaseCoordinates(color, nextStep, idx);
+        const key = `${rCenter}_${cCenter}`;
+        if (seenCoords.has(key)) return;
+        seenCoords.add(key);
+
+        const ring = document.createElement('div');
+        ring.style.top = `${(rCenter / 15) * 100}%`;
+        ring.style.left = `${(cCenter / 15) * 100}%`;
+        ring.style.transform = 'translate(-50%, -50%)';
+        ring.className = 'absolute w-[5.8%] h-[5.8%] rounded-full border-2 border-dashed border-amber-500 bg-amber-300/35 dest-highlight pointer-events-none';
+        previewLayer.appendChild(ring);
+      });
     }
 
     function renderTokensLayer() {
@@ -1767,7 +2213,6 @@
       if (!layer) return;
       layer.innerHTML = '';
 
-      // Group tokens that share the same square so we can neatly fan them out
       const cellGroups = {};
       const tokenItems = [];
 
@@ -1822,18 +2267,18 @@
         token.style.transform = 'translate(-50%, -50%)';
 
         const colorStyles =
-          color === 'red'    ? 'bg-gradient-to-b from-red-500 to-red-700 text-white border-white' :
-          color === 'green'  ? 'bg-gradient-to-b from-green-500 to-green-700 text-white border-white' :
-          color === 'yellow' ? 'bg-gradient-to-b from-yellow-300 to-yellow-500 text-slate-950 border-slate-900' :
-                               'bg-gradient-to-b from-blue-500 to-blue-700 text-white border-white';
+          color === 'red'    ? 'bg-gradient-to-b from-rose-400 to-rose-600 text-white border-white' :
+          color === 'green'  ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 text-white border-white' :
+          color === 'yellow' ? 'bg-gradient-to-b from-amber-300 to-amber-500 text-slate-950 border-white' :
+                               'bg-gradient-to-b from-sky-400 to-blue-600 text-white border-white';
 
         const sizeClasses = group.length > 1 && step >= 0 && step <= 55
           ? 'w-[5.2%] h-[5.2%] text-[9px]'
-          : 'w-[5.8%] h-[5.8%] text-[10px] sm:text-xs';
+          : 'w-[5.9%] h-[5.9%] text-[10px] sm:text-xs';
 
         token.className = `
           absolute ${sizeClasses} rounded-full flex items-center justify-center font-black
-          shadow-[0_3px_6px_rgba(0,0,0,0.55)] border-2 pointer-events-auto transition-all duration-150
+          shadow-[0_4px_10px_rgba(15,23,42,0.38)] border-2 pointer-events-auto transition-all duration-150
           ${colorStyles}
           ${movable ? 'token-movable ring-4 ring-amber-300' : 'z-20'}
         `;
@@ -1849,7 +2294,7 @@
       });
     }
 
-    // ---------------- CHAT / VICTORY ----------------
+    // ---------------- EMOJI & VICTORY ----------------
     function sendEmoji(emoji) {
       triggerEmojiAnimation(emoji);
       if (gameMode === 'online') {
@@ -1861,7 +2306,7 @@
     function triggerEmojiAnimation(emoji) {
       const container = document.getElementById('emojiFloatContainer');
       const el = document.createElement('div');
-      el.className = 'text-5xl sm:text-6xl animate-bounce filter drop-shadow-2xl';
+      el.className = 'text-5xl sm:text-6xl animate-bounce filter drop-shadow-xl';
       el.innerText = emoji;
       container.appendChild(el);
       setTimeout(() => el.remove(), 1800);
@@ -1897,6 +2342,7 @@
       gameState.status = 'playing';
 
       closeModal('victoryModal');
+      resetTurnTimerBar();
       renderGameUI();
       if (gameMode === 'online' && isHost) broadcastState();
       maybeTriggerBotTurn();
