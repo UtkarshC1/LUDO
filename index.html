@@ -1032,7 +1032,8 @@
       const roomParam = params.get('room');
       if (roomParam) {
         document.getElementById('joinCodeInput').value = roomParam.trim().toUpperCase();
-        setStatusBadge('Invite code loaded! Click Join Room', 'text-amber-600');
+        setStatusBadge('Auto-joining room...', 'text-amber-600');
+        joinRoom();
       }
     }
 
